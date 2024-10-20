@@ -1,0 +1,42 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Environnement
+.env
+
+# Dossiers de build/déploiement
+dist/
+build/
+
+# Fichiers temporaires
+*.tmp
+*.swp
+*.bak
+
+# Dossiers ou fichiers de tests
+coverage/
+*.test.js
+*.spec.js
+
+# Fichiers de téléchargement ou de sauvegarde
+uploads/
+backup/
+
+# Configuration des IDE/éditeurs
+.vscode/
+.idea/
+
+# Systèmes d'exploitation
+.DS_Store
+Thumbs.db
+
+# Autres
+loginAttempts.log
+
