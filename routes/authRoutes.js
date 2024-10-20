@@ -20,7 +20,7 @@ const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
 // Route pour l'enregistrement d'un utilisateur
-router.post('/register', upload.single('profilePhoto'), registerUser);
+router.post('/register', registerUser);
 
 // Route pour la connexion
 router.post('/login', loginUser);
