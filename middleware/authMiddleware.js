@@ -28,12 +28,27 @@ exports.protect = async (req, res, next) => {
        }
 
 
+
+
+
       next();
     } catch (err) {
       console.error(err.message);
+
+
+         // Vérifier si l'erreur est due à un token expiré
+         if (err.name === 'TokenExpiredError') {
+          return res.status(401).json({ msg: 'Session expirée, veuillez vous reconnecter.' });
+        }
+
+
+
       return res.status(401).json({ msg: 'Non autorisé, token invalide' });
     }
   }
+
+
+
 
   if (!token) {
     return res.status(401).json({ msg: 'Non autorisé, aucun token fourni' });

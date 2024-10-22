@@ -5,12 +5,12 @@ const mongoose = require('mongoose');
 const User = require('../models/User');  // Modèle User pour l'authentification
 const Establishment = require('../models/Establishment');
 const Class = require('../models/Class');
-const fs = require('fs');
-const path = require('path');
 const DevoirCompo = require('../models/DevoirCompo'); // Importez votre modèle de notes
 const cloudinary = require('cloudinary').v2;
 const QRCode = require('qrcode');
-
+///const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
 
 // Contrôleur pour supprimer toutes les cartes scolaires
 exports.deleteAllSchoolCards = async (req, res) => {
@@ -47,104 +47,6 @@ const generateUniqueMatricule = async (establishment, classInfo) => {
   return matricule;
 };
 
-// exports.createStudent = async (req, res) => {
-//   try {
-//     const { 
-//       firstName, 
-//       lastName, 
-//       gender, 
-//       dateOfBirth, 
-//       classId, 
-//       motherName,   // Nom de la mère
-//       fatherPhone,   // Téléphone du père
-//       motherPhone,   // Téléphone de la mère
-//       parentsAddress // Adresse des parents
-//     } = req.body;
-
-//     const { user } = req;  // L'utilisateur connecté qui crée l'élève
-
-//     console.log('Données reçues :', req.body);  // Log des données reçues dans la requête
-//     console.log('Fichier reçu :', req.file);    // Log des fichiers reçus (photo)
-
-//     // Vérification de l'utilisateur et de l'établissement
-//     if (!user || !user.schoolId) {
-//       return res.status(400).json({ msg: "Utilisateur ou établissement non défini." });
-//     }
-
-//     if (!classId) {
-//       return res.status(400).json({ msg: "ID de classe manquant." });
-//     }
-
-//     // Validation de la date de naissance
-//     const dob = new Date(dateOfBirth);
-//     if (isNaN(dob.getTime()) || dob > new Date()) {
-//       return res.status(400).json({ msg: "Date de naissance invalide." });
-//     }
-
-//     const establishment = await Establishment.findById(user.schoolId);
-//     const classInfo = await Class.findById(classId);
-
-//     if (!establishment || !classInfo) {
-//       return res.status(400).json({ msg: "Établissement ou classe introuvable." });
-//     }
-
-//     // Appel à la fonction pour générer un matricule unique
-//     const matricule = await generateUniqueMatricule(establishment, classInfo);
-
-//     // Gestion de la photo avec vérification du type de fichier
-//     let photo = null;
-//     if (req.file) {
-//       const validExtensions = ['.jpg', '.jpeg', '.png'];
-//       const fileExtension = path.extname(req.file.originalname).toLowerCase();
-//       if (!validExtensions.includes(fileExtension)) {
-//         return res.status(400).json({ msg: 'Format de fichier non pris en charge. Seules les images (jpg, jpeg, png) sont autorisées.' });
-//       }
-//       photo = req.file.path;  // Si tout est correct, on enregistre le chemin de la photo
-//       console.log('Chemin de la photo :', photo);  // Log du chemin de la photo
-//     }
-
-//     // Création de l'élève dans la collection Student
-//     const newStudent = new Student({
-//       firstName,
-//       lastName,
-//       gender,
-//       dateOfBirth: dob,
-//       classId,
-//       establishmentId: user.schoolId,
-//       matricule,
-//       photo,
-//       motherName,    // Ajout du nom de la mère
-//       fatherPhone,   // Ajout du téléphone du père
-//       motherPhone,   // Ajout du téléphone de la mère
-//       parentsAddress // Ajout de l'adresse des parents
-//     });
-
-//     await newStudent.save();
-
-//     // Création d'un nouvel utilisateur pour l'élève
-//     const initialPassword = Math.floor(100000 + Math.random() * 900000).toString();
-//     const newUser = new User({
-//       name: `${firstName} ${lastName}`,
-//       password: initialPassword,
-//       matricule: newStudent.matricule,
-//       role: 'Eleve',
-//       studentId: newStudent._id,
-//       schoolId: user.schoolId,
-//     });
-
-//     await newUser.save();
-
-//     res.status(201).json({
-//       student: newStudent,
-//       matricule: newStudent.matricule,
-//       password: initialPassword,
-//     });
-//   } catch (err) {
-//     // Gestion des erreurs avec plus de détails
-//     console.error('Erreur lors de la création de l\'élève:', err.message, 'Stack trace:', err.stack);
-//     res.status(500).json({ msg: 'Erreur du serveur lors de la création de l\'élève' });
-//   }
-// };
 
 
 exports.createStudent = async (req, res) => {
@@ -229,17 +131,47 @@ exports.createStudent = async (req, res) => {
 
     await newUser.save();
 
+
+    
+
+
+    // Génération du fichier texte avec les informations de l'élève
+    const filePath = path.join(__dirname, `Compte_${firstName}_${lastName}.txt`);
+    const fileContent = `Bonjour ${firstName} ${lastName},\n\nVotre compte a été créé avec succès.\n\nInformations d'authentification :\n- Matricule : ${newStudent.matricule}\n- Mot de passe : ${initialPassword}\n\nVeuillez utiliser ces informations pour vous connecter à la plateforme et accéder aux ressources pédagogiques.\n\nCordialement,\nL'équipe pédagogique.`;
+
+    fs.writeFile(filePath, fileContent, (err) => {
+      if (err) {
+        console.error('Erreur lors de la création du fichier:', err);
+        return res.status(500).json({ msg: 'Erreur lors de la génération du fichier texte.' });
+      }
+      
+
+
+
+    
+    console.log(`Fichier texte créé avec succès : ${filePath}`);
     res.status(201).json({
-      msg: 'Élève créé avec succès',
+      msg: 'Élève créé avec succès. Fichier texte généré.',
       student: newStudent,
       matricule: newStudent.matricule,
       password: initialPassword,
+      filePath: filePath // Vous pouvez envoyer le chemin du fichier si nécessaire
+
     });
+
+
+  });
+
+
   } catch (err) {
     console.error('Erreur lors de la création de l\'élève:', err.message);
     res.status(500).json({ msg: 'Erreur du serveur lors de la création de l\'élève.', error: err.message });
   }
 };
+
+
+
+
 
 
 
