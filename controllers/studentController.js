@@ -8,7 +8,7 @@ const Class = require('../models/Class');
 const fs = require('fs');
 const path = require('path');
 const DevoirCompo = require('../models/DevoirCompo'); // Importez votre modèle de notes
-
+const cloudinary = require('cloudinary').v2;
 const QRCode = require('qrcode');
 
 
@@ -47,30 +47,131 @@ const generateUniqueMatricule = async (establishment, classInfo) => {
   return matricule;
 };
 
+// exports.createStudent = async (req, res) => {
+//   try {
+//     const { 
+//       firstName, 
+//       lastName, 
+//       gender, 
+//       dateOfBirth, 
+//       classId, 
+//       motherName,   // Nom de la mère
+//       fatherPhone,   // Téléphone du père
+//       motherPhone,   // Téléphone de la mère
+//       parentsAddress // Adresse des parents
+//     } = req.body;
+
+//     const { user } = req;  // L'utilisateur connecté qui crée l'élève
+
+//     console.log('Données reçues :', req.body);  // Log des données reçues dans la requête
+//     console.log('Fichier reçu :', req.file);    // Log des fichiers reçus (photo)
+
+//     // Vérification de l'utilisateur et de l'établissement
+//     if (!user || !user.schoolId) {
+//       return res.status(400).json({ msg: "Utilisateur ou établissement non défini." });
+//     }
+
+//     if (!classId) {
+//       return res.status(400).json({ msg: "ID de classe manquant." });
+//     }
+
+//     // Validation de la date de naissance
+//     const dob = new Date(dateOfBirth);
+//     if (isNaN(dob.getTime()) || dob > new Date()) {
+//       return res.status(400).json({ msg: "Date de naissance invalide." });
+//     }
+
+//     const establishment = await Establishment.findById(user.schoolId);
+//     const classInfo = await Class.findById(classId);
+
+//     if (!establishment || !classInfo) {
+//       return res.status(400).json({ msg: "Établissement ou classe introuvable." });
+//     }
+
+//     // Appel à la fonction pour générer un matricule unique
+//     const matricule = await generateUniqueMatricule(establishment, classInfo);
+
+//     // Gestion de la photo avec vérification du type de fichier
+//     let photo = null;
+//     if (req.file) {
+//       const validExtensions = ['.jpg', '.jpeg', '.png'];
+//       const fileExtension = path.extname(req.file.originalname).toLowerCase();
+//       if (!validExtensions.includes(fileExtension)) {
+//         return res.status(400).json({ msg: 'Format de fichier non pris en charge. Seules les images (jpg, jpeg, png) sont autorisées.' });
+//       }
+//       photo = req.file.path;  // Si tout est correct, on enregistre le chemin de la photo
+//       console.log('Chemin de la photo :', photo);  // Log du chemin de la photo
+//     }
+
+//     // Création de l'élève dans la collection Student
+//     const newStudent = new Student({
+//       firstName,
+//       lastName,
+//       gender,
+//       dateOfBirth: dob,
+//       classId,
+//       establishmentId: user.schoolId,
+//       matricule,
+//       photo,
+//       motherName,    // Ajout du nom de la mère
+//       fatherPhone,   // Ajout du téléphone du père
+//       motherPhone,   // Ajout du téléphone de la mère
+//       parentsAddress // Ajout de l'adresse des parents
+//     });
+
+//     await newStudent.save();
+
+//     // Création d'un nouvel utilisateur pour l'élève
+//     const initialPassword = Math.floor(100000 + Math.random() * 900000).toString();
+//     const newUser = new User({
+//       name: `${firstName} ${lastName}`,
+//       password: initialPassword,
+//       matricule: newStudent.matricule,
+//       role: 'Eleve',
+//       studentId: newStudent._id,
+//       schoolId: user.schoolId,
+//     });
+
+//     await newUser.save();
+
+//     res.status(201).json({
+//       student: newStudent,
+//       matricule: newStudent.matricule,
+//       password: initialPassword,
+//     });
+//   } catch (err) {
+//     // Gestion des erreurs avec plus de détails
+//     console.error('Erreur lors de la création de l\'élève:', err.message, 'Stack trace:', err.stack);
+//     res.status(500).json({ msg: 'Erreur du serveur lors de la création de l\'élève' });
+//   }
+// };
+
+
 exports.createStudent = async (req, res) => {
   try {
+    console.log('Données reçues :', req.body);
+    console.log('Fichier reçu :', req.file);  // Vérifier le fichier reçu
+
     const { 
       firstName, 
       lastName, 
       gender, 
       dateOfBirth, 
       classId, 
-      motherName,   // Nom de la mère
-      fatherPhone,   // Téléphone du père
-      motherPhone,   // Téléphone de la mère
-      parentsAddress // Adresse des parents
+      motherName, 
+      fatherPhone, 
+      motherPhone, 
+      parentsAddress 
     } = req.body;
 
     const { user } = req;  // L'utilisateur connecté qui crée l'élève
-
-    console.log('Données reçues :', req.body);  // Log des données reçues dans la requête
-    console.log('Fichier reçu :', req.file);    // Log des fichiers reçus (photo)
 
     // Vérification de l'utilisateur et de l'établissement
     if (!user || !user.schoolId) {
       return res.status(400).json({ msg: "Utilisateur ou établissement non défini." });
     }
 
+    // Vérifier que l'ID de classe est fourni
     if (!classId) {
       return res.status(400).json({ msg: "ID de classe manquant." });
     }
@@ -91,16 +192,10 @@ exports.createStudent = async (req, res) => {
     // Appel à la fonction pour générer un matricule unique
     const matricule = await generateUniqueMatricule(establishment, classInfo);
 
-    // Gestion de la photo avec vérification du type de fichier
+    // Gestion de la photo avec Cloudinary
     let photo = null;
     if (req.file) {
-      const validExtensions = ['.jpg', '.jpeg', '.png'];
-      const fileExtension = path.extname(req.file.originalname).toLowerCase();
-      if (!validExtensions.includes(fileExtension)) {
-        return res.status(400).json({ msg: 'Format de fichier non pris en charge. Seules les images (jpg, jpeg, png) sont autorisées.' });
-      }
-      photo = req.file.path;  // Si tout est correct, on enregistre le chemin de la photo
-      console.log('Chemin de la photo :', photo);  // Log du chemin de la photo
+      photo = req.file.path || req.file.url;  // Récupère l'URL de la photo uploadée sur Cloudinary
     }
 
     // Création de l'élève dans la collection Student
@@ -113,10 +208,10 @@ exports.createStudent = async (req, res) => {
       establishmentId: user.schoolId,
       matricule,
       photo,
-      motherName,    // Ajout du nom de la mère
-      fatherPhone,   // Ajout du téléphone du père
-      motherPhone,   // Ajout du téléphone de la mère
-      parentsAddress // Ajout de l'adresse des parents
+      motherName,
+      fatherPhone,
+      motherPhone,
+      parentsAddress
     });
 
     await newStudent.save();
@@ -135,16 +230,19 @@ exports.createStudent = async (req, res) => {
     await newUser.save();
 
     res.status(201).json({
+      msg: 'Élève créé avec succès',
       student: newStudent,
       matricule: newStudent.matricule,
       password: initialPassword,
     });
   } catch (err) {
-    // Gestion des erreurs avec plus de détails
-    console.error('Erreur lors de la création de l\'élève:', err.message, 'Stack trace:', err.stack);
-    res.status(500).json({ msg: 'Erreur du serveur lors de la création de l\'élève' });
+    console.error('Erreur lors de la création de l\'élève:', err.message);
+    res.status(500).json({ msg: 'Erreur du serveur lors de la création de l\'élève.', error: err.message });
   }
 };
+
+
+
 
 
 
@@ -221,6 +319,71 @@ exports.getStudentById = async (req, res) => {
 };
 
 
+// exports.updateStudent = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { 
+//       firstName, 
+//       lastName, 
+//       dateOfBirth, 
+//       gender, 
+//       classId, 
+//       motherName,       // Ajout du nom de la mère
+//       fatherPhone,       // Ajout du téléphone du père
+//       motherPhone,       // Ajout du téléphone de la mère
+//       parentsAddress     // Ajout de l'adresse des parents
+//     } = req.body;
+
+//     // Trouver l'élève par son ID
+//     const student = await Student.findById(id);
+//     if (!student) {
+//       return res.status(404).json({ msg: "Élève non trouvé" });
+//     }
+
+//     // Validation de la date de naissance
+//     const dob = new Date(dateOfBirth);
+//     if (isNaN(dob.getTime()) || dob > new Date()) {
+//       return res.status(400).json({ msg: "Date de naissance invalide." });
+//     }
+
+//     // Mise à jour des informations de l'élève
+//     student.firstName = firstName || student.firstName;
+//     student.lastName = lastName || student.lastName;
+//     student.dateOfBirth = dob || student.dateOfBirth;
+//     student.gender = gender || student.gender;
+//     student.classId = classId || student.classId;
+
+//     // Mise à jour des nouveaux champs ajoutés
+//     student.motherName = motherName || student.motherName;         // Mise à jour du nom de la mère
+//     student.fatherPhone = fatherPhone || student.fatherPhone;      // Mise à jour du téléphone du père
+//     student.motherPhone = motherPhone || student.motherPhone;      // Mise à jour du téléphone de la mère
+//     student.parentsAddress = parentsAddress || student.parentsAddress; // Mise à jour de l'adresse des parents
+
+//     // Gestion de l'upload de la photo
+//     if (req.file) {
+//       student.photo = req.file.path;  // Si une nouvelle photo est uploadée, on met à jour le chemin de la photo
+//     }
+
+//     // Sauvegarder les modifications
+//     await student.save();
+
+//     // Récupérer l'élève mis à jour avec les informations de la classe et de l'établissement
+//     const updatedStudent = await Student.findById(id)
+//       .populate('classId')
+//       .populate('establishmentId');
+
+//     // Répondre avec l'élève mis à jour
+//     res.status(200).json(updatedStudent);
+//   } catch (err) {
+//     console.error('Erreur lors de la mise à jour de l\'élève:', err.message);
+//     res.status(500).json({ msg: 'Erreur du serveur lors de la mise à jour de l\'élève' });
+//   }
+// };
+
+
+
+
+
 exports.updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -256,14 +419,39 @@ exports.updateStudent = async (req, res) => {
     student.classId = classId || student.classId;
 
     // Mise à jour des nouveaux champs ajoutés
-    student.motherName = motherName || student.motherName;         // Mise à jour du nom de la mère
-    student.fatherPhone = fatherPhone || student.fatherPhone;      // Mise à jour du téléphone du père
-    student.motherPhone = motherPhone || student.motherPhone;      // Mise à jour du téléphone de la mère
-    student.parentsAddress = parentsAddress || student.parentsAddress; // Mise à jour de l'adresse des parents
+    student.motherName = motherName || student.motherName;
+    student.fatherPhone = fatherPhone || student.fatherPhone;
+    student.motherPhone = motherPhone || student.motherPhone;
+    student.parentsAddress = parentsAddress || student.parentsAddress;
 
     // Gestion de l'upload de la photo
     if (req.file) {
-      student.photo = req.file.path;  // Si une nouvelle photo est uploadée, on met à jour le chemin de la photo
+      try {
+        // Supprimer l'ancienne photo de Cloudinary si elle existe
+        if (student.photo) {
+          const publicIdMatch = student.photo.match(/\/(?:v\d+\/)?([^/]+)\.\w+$/);
+          const publicId = publicIdMatch ? `students/${publicIdMatch[1]}` : null;
+
+          if (publicId) {
+            await cloudinary.uploader.destroy(publicId);
+          }
+        }
+
+        // Upload de la nouvelle photo sur Cloudinary
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'students',
+          public_id: `${firstName.toLowerCase()}-${Date.now()}`,
+          resource_type: 'image',
+        });
+
+        // Mise à jour de l'URL de la nouvelle photo
+        student.photo = result.secure_url;
+        console.log('Nouvelle URL de la photo sur Cloudinary :', student.photo);
+
+      } catch (error) {
+        console.error('Erreur lors de l\'upload de la photo sur Cloudinary :', error);
+        return res.status(500).json({ msg: 'Erreur lors de l\'upload de la photo' });
+      }
     }
 
     // Sauvegarder les modifications
@@ -282,56 +470,55 @@ exports.updateStudent = async (req, res) => {
   }
 };
 
+// exports.deleteStudent = async (req, res) => {
+//   try {
+//     const studentId = req.params.id;
 
-exports.deleteStudent = async (req, res) => {
-  try {
-    const studentId = req.params.id;
-
-    // Vérifier s'il y a des notes associées à cet élève dans la collection DevoirCompo
-    const associatedNotes = await DevoirCompo.find({ student: studentId });
+//     // Vérifier s'il y a des notes associées à cet élève dans la collection DevoirCompo
+//     const associatedNotes = await DevoirCompo.find({ student: studentId });
     
-    if (associatedNotes.length > 0) {
-      return res.status(400).json({
-        msg: 'Cet élève ne peut pas être supprimé car il a des notes associées.'
-      });
-    }
+//     if (associatedNotes.length > 0) {
+//       return res.status(400).json({
+//         msg: 'Cet élève ne peut pas être supprimé car il a des notes associées.'
+//       });
+//     }
 
-    // Trouver l'élève par son ID
-    const student = await Student.findById(studentId);
+//     // Trouver l'élève par son ID
+//     const student = await Student.findById(studentId);
     
-    if (!student) {
-      return res.status(404).json({ msg: 'Élève non trouvé' });
-    }
+//     if (!student) {
+//       return res.status(404).json({ msg: 'Élève non trouvé' });
+//     }
 
-    // Supprimer l'utilisateur associé
-    const deletedUser = await User.findOneAndDelete({ studentId: student._id });
-    if (!deletedUser) {
-      console.log(`Aucun utilisateur trouvé avec studentId : ${student._id}`);
-    } else {
-      console.log(`Utilisateur avec studentId : ${student._id} supprimé avec succès`);
-    }
+//     // Supprimer l'utilisateur associé
+//     const deletedUser = await User.findOneAndDelete({ studentId: student._id });
+//     if (!deletedUser) {
+//       console.log(`Aucun utilisateur trouvé avec studentId : ${student._id}`);
+//     } else {
+//       console.log(`Utilisateur avec studentId : ${student._id} supprimé avec succès`);
+//     }
 
-    // Supprimer la photo du serveur si elle existe
-    if (student.photo) {
-      const photoPath = path.join(__dirname, '..', student.photo);
-      fs.unlink(photoPath, (err) => {
-        if (err) {
-          console.error('Erreur lors de la suppression de la photo:', err.message);
-        } else {
-          console.log('Photo supprimée avec succès:', student.photo);
-        }
-      });
-    }
+//     // Supprimer la photo du serveur si elle existe
+//     if (student.photo) {
+//       const photoPath = path.join(__dirname, '..', student.photo);
+//       fs.unlink(photoPath, (err) => {
+//         if (err) {
+//           console.error('Erreur lors de la suppression de la photo:', err.message);
+//         } else {
+//           console.log('Photo supprimée avec succès:', student.photo);
+//         }
+//       });
+//     }
 
-    // Supprimer l'élève
-    await Student.findByIdAndDelete(studentId);
+//     // Supprimer l'élève
+//     await Student.findByIdAndDelete(studentId);
 
-    res.status(200).json({ msg: 'Élève et utilisateur associé supprimés avec succès' });
-  } catch (err) {
-    console.error('Erreur lors de la suppression de l\'élève:', err.message);
-    res.status(500).json({ msg: 'Erreur du serveur lors de la suppression de l\'élève' });
-  }
-};
+//     res.status(200).json({ msg: 'Élève et utilisateur associé supprimés avec succès' });
+//   } catch (err) {
+//     console.error('Erreur lors de la suppression de l\'élève:', err.message);
+//     res.status(500).json({ msg: 'Erreur du serveur lors de la suppression de l\'élève' });
+//   }
+// };
 
 
 
@@ -417,6 +604,54 @@ exports.deleteStudent = async (req, res) => {
 
 
 //===================
+
+
+
+exports.deleteStudent = async (req, res) => {
+  try {
+    const studentId = req.params.id;
+
+    const associatedNotes = await DevoirCompo.find({ student: studentId });
+    if (associatedNotes.length > 0) {
+      return res.status(400).json({
+        msg: 'Cet élève ne peut pas être supprimé car il a des notes associées.'
+      });
+    }
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ msg: 'Élève non trouvé' });
+    }
+
+    await User.findOneAndDelete({ studentId: student._id });
+
+    // Supprimer la photo de Cloudinary
+    if (student.photo) {
+      try {
+        // Extraire l'ID public de l'URL de la photo stockée
+        const publicIdMatch = student.photo.match(/students\/([^/]+)\.(jpg|jpeg|png)$/);
+        if (publicIdMatch) {
+          const publicId = `students/${publicIdMatch[1]}`;
+          await cloudinary.uploader.destroy(publicId);
+          console.log('Photo supprimée avec succès de Cloudinary');
+        } else {
+          console.error('ID public de l\'image introuvable pour la suppression.');
+        }
+      } catch (error) {
+        console.error('Erreur lors de la suppression de la photo de Cloudinary:', error.message);
+      }
+    }
+
+    await Student.findByIdAndDelete(studentId);
+
+    res.status(200).json({ msg: 'Élève et utilisateur associé supprimés avec succès' });
+  } catch (err) {
+    console.error('Erreur lors de la suppression de l\'élève:', err.message);
+    res.status(500).json({ msg: 'Erreur du serveur lors de la suppression de l\'élève' });
+  }
+};
+
+
 
 
 exports.generateSchoolCards = async (req, res) => {

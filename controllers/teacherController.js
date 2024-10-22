@@ -5,13 +5,60 @@ const mongoose = require('mongoose'); // Assurez-vous que cette ligne est prése
 // Créer un nouvel enseignant
 const Subject = require('../models/Subject');
 
-const fs = require('fs');
-const path = require('path');
+const cloudinary = require('cloudinary').v2; // Assurez-vous d'importer Cloudinary correctement
+
+
 
 
 
 
 // Fonction pour créer un enseignant
+
+// exports.createTeacher = async (req, res) => {
+//   try {
+//     console.log('Données reçues :', req.body);
+//     console.log('Fichier reçu :', req.file);  // Vérifier le fichier reçu
+
+//     const { nom, telephone, email, educationLevel } = req.body;
+
+//     // Assurer que le champ téléphone est bien rempli
+//     if (!telephone || telephone.trim() === '') {
+//       return res.status(400).json({ msg: 'Le champ téléphone est requis.' });
+//     }
+
+//     // Vérifier s'il existe déjà un enseignant avec ce numéro de téléphone dans cet établissement
+//     const existingTeacher = await Teacher.findOne({ telephone, establishmentId: req.user.schoolId });
+//     if (existingTeacher) {
+//       return res.status(400).json({ msg: 'Ce numéro de téléphone est déjà utilisé pour cet établissement.' });
+//     }
+
+//     // Gestion de la photo
+//     let photo = null;
+//     if (req.file) {
+//       photo = req.file.path;  // Récupère le chemin de la photo uploadée
+//     }
+
+//     const newTeacher = new Teacher({
+//       nom,
+//       telephone,
+//       email,
+//       educationLevel,
+//       establishmentId: req.user.schoolId,
+//       photo  // Enregistre la photo dans la base de données
+//     });
+
+//     await newTeacher.save();
+//     res.status(201).json({
+//       msg: 'Enseignant créé avec succès',
+//       teacher: newTeacher
+//     });
+//   } catch (err) {
+//     console.error('Erreur lors de la création de l\'enseignant:', err.message);
+//     res.status(500).json({ msg: 'Erreur du serveur lors de la création de l\'enseignant.', error: err.message });
+//   }
+// };
+
+
 
 exports.createTeacher = async (req, res) => {
   try {
@@ -31,10 +78,10 @@ exports.createTeacher = async (req, res) => {
       return res.status(400).json({ msg: 'Ce numéro de téléphone est déjà utilisé pour cet établissement.' });
     }
 
-    // Gestion de la photo
+    // Gestion de la photo avec Cloudinary
     let photo = null;
     if (req.file) {
-      photo = req.file.path;  // Récupère le chemin de la photo uploadée
+      photo = req.file.path || req.file.url;  // Récupère l'URL de la photo uploadée sur Cloudinary
     }
 
     const newTeacher = new Teacher({
@@ -43,7 +90,7 @@ exports.createTeacher = async (req, res) => {
       email,
       educationLevel,
       establishmentId: req.user.schoolId,
-      photo  // Enregistre la photo dans la base de données
+      photo  // Enregistre l'URL de la photo dans la base de données
     });
 
     await newTeacher.save();
@@ -56,9 +103,6 @@ exports.createTeacher = async (req, res) => {
     res.status(500).json({ msg: 'Erreur du serveur lors de la création de l\'enseignant.', error: err.message });
   }
 };
-
-
-
 
 
 
@@ -156,67 +200,51 @@ exports.getTeacherSubjects = async (req, res) => {
 
 
 
-
-
-
 // exports.updateTeacher = async (req, res) => {
 //   try {
-//     // Vérification des permissions
-//     if (!req.user.permissions.update) {
-//       return res.status(403).json({ msg: "Accès refusé : vous n'avez pas la permission de modifier un enseignant." });
-//     }
-
 //     const { id } = req.params;
-//     const { nom, telephone, email, matières, establishmentId, educationLevel } = req.body;
+//     const { nom, telephone, email, educationLevel } = req.body;
 
-//     // Vérification des champs requis
-//     if (!nom || !telephone || !establishmentId || !educationLevel) {
+//     // Vérification minimale des champs à mettre à jour
+//     if (!nom || !educationLevel) {
 //       return res.status(400).json({ msg: 'Les champs requis sont manquants.' });
 //     }
 
-//     // Rechercher l'enseignant actuel par son ID
+//     // Recherche de l'enseignant par son ID
 //     const teacher = await Teacher.findById(id);
 //     if (!teacher) {
 //       return res.status(404).json({ msg: 'Enseignant non trouvé.' });
 //     }
 
-//     // Vérifier uniquement si le numéro de téléphone a changé
-//     if (telephone !== teacher.telephone) {
-//       const existingTeacher = await Teacher.findOne({ telephone, establishmentId });
-      
-//       // Si un autre enseignant a ce numéro de téléphone, renvoie une erreur
-//       if (existingTeacher && existingTeacher._id.toString() !== id) {
-//         return res.status(400).json({ msg: 'Ce numéro de téléphone est déjà utilisé pour cet établissement.' });
-//       }
-//     }
-
-//     // Mise à jour des champs standards
+//     // Mise à jour des champs
 //     teacher.nom = nom;
-//     teacher.telephone = telephone;  // Mettre à jour seulement si le téléphone est modifié
-//     teacher.email = email;
-//     teacher.establishmentId = establishmentId;
 //     teacher.educationLevel = educationLevel;
 
-//     // Mise à jour de la photo si une nouvelle photo a été uploadée
+//     // Mise à jour de l'email si modifié
+//     if (email) {
+//       teacher.email = email;
+//     }
+
+//     // Mise à jour du téléphone si modifié
+//     if (telephone && telephone !== teacher.telephone) {
+//       const existingTeacher = await Teacher.findOne({ telephone, establishmentId: teacher.establishmentId });
+//       if (existingTeacher && existingTeacher._id.toString() !== id) {
+//         return res.status(400).json({ msg: 'Ce numéro de téléphone est déjà utilisé.' });
+//       }
+//       teacher.telephone = telephone;
+//     }
+
+//     // Mise à jour de la photo si une nouvelle est uploadée
 //     if (req.file) {
-//       teacher.photo = req.file.path;  // Mettre à jour la photo uniquement si une nouvelle photo est uploadée
+//       teacher.photo = req.file.path;
 //     }
 
 //     await teacher.save();
-
-//     // Mise à jour des matières
-//     if (matières && matières.length > 0) {
-//       await TeacherSubject.deleteMany({ teacher: id });
-//       const teacherSubjects = matières.map(subjectId => ({ teacher: id, subject: subjectId, establishmentId }));
-//       await TeacherSubject.insertMany(teacherSubjects);
-//     }
-
 //     res.status(200).json({ msg: 'Enseignant mis à jour avec succès', teacher });
 //   } catch (err) {
-//     res.status(500).json({ msg: 'Erreur du serveur lors de la mise à jour de l\'enseignant. Veuillez réessayer plus tard.' });
+//     res.status(500).json({ msg: 'Erreur du serveur lors de la mise à jour de l\'enseignant.' });
 //   }
 // };
-
 
 
 exports.updateTeacher = async (req, res) => {
@@ -253,9 +281,9 @@ exports.updateTeacher = async (req, res) => {
       teacher.telephone = telephone;
     }
 
-    // Mise à jour de la photo si une nouvelle est uploadée
+    // Mise à jour de la photo si une nouvelle est uploadée avec Cloudinary
     if (req.file) {
-      teacher.photo = req.file.path;
+      teacher.photo = req.file.path || req.file.url; // Utilise l'URL renvoyée par Cloudinary
     }
 
     await teacher.save();
@@ -268,7 +296,38 @@ exports.updateTeacher = async (req, res) => {
 
 
 
+// exports.deleteTeacher = async (req, res) => {
+//   try {
+//     const teacherId = req.params.id;
 
+//     // Récupérer l'enseignant avant de le supprimer
+//     const teacher = await Teacher.findById(teacherId);
+
+//     if (!teacher) {
+//       return res.status(404).json({ msg: "Enseignant non trouvé." });
+//     }
+
+//     // Supprimer la photo associée si elle existe
+//     if (teacher.photo) {
+//       const photoPath = path.join(__dirname, '..', teacher.photo); // Construire le chemin complet du fichier
+//       fs.unlink(photoPath, (err) => {
+//         if (err) {
+//           console.error('Erreur lors de la suppression de la photo:', err.message);
+//         } else {
+//           console.log('Photo supprimée:', teacher.photo);
+//         }
+//       });
+//     }
+
+//     // Supprimer l'enseignant de la base de données
+//     await Teacher.findByIdAndDelete(teacherId);
+
+//     res.status(200).json({ msg: "Enseignant supprimé avec succès." });
+//   } catch (error) {
+//     console.error("Erreur lors de la suppression de l'enseignant:", error.message);
+//     res.status(500).json({ msg: "Erreur du serveur lors de la suppression de l'enseignant." });
+//   }
+// };
 
 exports.deleteTeacher = async (req, res) => {
   try {
@@ -281,16 +340,23 @@ exports.deleteTeacher = async (req, res) => {
       return res.status(404).json({ msg: "Enseignant non trouvé." });
     }
 
-    // Supprimer la photo associée si elle existe
+    // Supprimer la photo associée de Cloudinary si elle existe
     if (teacher.photo) {
-      const photoPath = path.join(__dirname, '..', teacher.photo); // Construire le chemin complet du fichier
-      fs.unlink(photoPath, (err) => {
-        if (err) {
-          console.error('Erreur lors de la suppression de la photo:', err.message);
-        } else {
-          console.log('Photo supprimée:', teacher.photo);
-        }
-      });
+      // Extraire l'identifiant public Cloudinary de l'URL complète
+      const publicIdMatch = teacher.photo.match(/\/(?:v\d+\/)?([^/]+)\.\w+$/);
+      const publicId = publicIdMatch ? `teachers/${publicIdMatch[1]}` : null;
+
+      if (publicId) {
+        await cloudinary.uploader.destroy(publicId, (error, result) => {
+          if (error) {
+            console.error('Erreur lors de la suppression de la photo sur Cloudinary:', error.message);
+          } else {
+            console.log('Photo supprimée de Cloudinary:', result);
+          }
+        });
+      } else {
+        console.error('Impossible de trouver l\'identifiant public de la photo pour Cloudinary.');
+      }
     }
 
     // Supprimer l'enseignant de la base de données
@@ -302,7 +368,6 @@ exports.deleteTeacher = async (req, res) => {
     res.status(500).json({ msg: "Erreur du serveur lors de la suppression de l'enseignant." });
   }
 };
-
 
 
 
