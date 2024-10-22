@@ -41,21 +41,21 @@ const app = express();
 app.use(express.json());
 
 //Configuration de CORS pour permettre les requêtes depuis localhost:3000 et localhost:3001
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'] // Autoriser les deux origines
-}));
-
 // app.use(cors({
-//   origin: [
-//     'https://gesecole-frontend-6535e71717bc.herokuapp.com', // URL de ton frontend déployé
-//     'http://localhost:3000', // Pour le développement local
-//     'http://localhost:3001',
-//     'http://localhost:3002'
-//   ],
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   credentials: true,
-//   allowedHeaders: ['Content-Type', 'Authorization']
+//   origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'] // Autoriser les deux origines
 // }));
+
+app.use(cors({
+  origin: [
+    'https://gesecole-frontend-6535e71717bc.herokuapp.com', // URL de ton frontend déployé
+    'http://localhost:3000', // Pour le développement local
+    'http://localhost:3001',
+    'http://localhost:3002'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 
 // Définir les routes
