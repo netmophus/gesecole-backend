@@ -1,5 +1,3 @@
-//mon model 
-
 const mongoose = require('mongoose');
 
 const inscriptionCFEPDSchema = new mongoose.Schema({
