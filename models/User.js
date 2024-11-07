@@ -151,7 +151,7 @@ const UserSchema = new mongoose.Schema({
 
   role: {
     type: String,
-    enum: ['Admin', 'Enseignant', 'Eleve', 'Inspection', 'Regional', 'Parent', 'Etablissement', 'bepc', 'bepcadmin', 'admincentralbepc'],
+    enum: ['Admin', 'Enseignant', 'Eleve', 'Inspection', 'Regional', 'Parent', 'Etablissement', 'bepc', 'bepcadmin', 'cfepd', 'cfepdadmin'],
     required: true,
   },
   

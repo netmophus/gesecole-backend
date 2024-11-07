@@ -1,5 +1,5 @@
 const express = require('express');
-const { createClass, getClasses, updateClass, deleteClass } = require('../controllers/classController');
+const { createClass, getClasses, updateClass, deleteClass, getSubjectsByClass } = require('../controllers/classController');
 
 
 const { protect } = require('../middleware/authMiddleware');
@@ -12,11 +12,16 @@ router.post('/', protect, createClass);
 // Route pour récupérer les classes avec pagination et recherche
 router.get('/', protect, getClasses);
 
+
+router.get('/class/:classId/subjects', protect, getSubjectsByClass);
+
 // Route pour mettre à jour une classe
 router.put('/:id', protect, updateClass);
 
 // Route pour supprimer une classe
 router.delete('/:id', protect, deleteClass);
+
+
 
 
 module.exports = router;

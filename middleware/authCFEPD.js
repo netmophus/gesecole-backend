@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-exports.protectBEPC = async (req, res, next) => {
+exports.protectCFEPD = async (req, res, next) => {
   let token;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -13,7 +13,7 @@ exports.protectBEPC = async (req, res, next) => {
 
       req.user = await User.findById(decoded.id).select('-password');
 
-      const authorizedRoles = ['bepc', 'bepcadmin', 'admincentralbepc'];
+      const authorizedRoles = ['cfepd', 'cfepdadmin'];
       if (!authorizedRoles.includes(req.user.role)) {
         return res.status(403).json({ msg: 'Accès interdit : vous n\'avez pas le rôle approprié' });
       }

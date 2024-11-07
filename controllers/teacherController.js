@@ -5,60 +5,10 @@ const mongoose = require('mongoose'); // Assurez-vous que cette ligne est prése
 // Créer un nouvel enseignant
 const Subject = require('../models/Subject');
 
+
 const cloudinary = require('cloudinary').v2; // Assurez-vous d'importer Cloudinary correctement
 
-
-
-
-
-
 // Fonction pour créer un enseignant
-
-// exports.createTeacher = async (req, res) => {
-//   try {
-//     console.log('Données reçues :', req.body);
-//     console.log('Fichier reçu :', req.file);  // Vérifier le fichier reçu
-
-//     const { nom, telephone, email, educationLevel } = req.body;
-
-//     // Assurer que le champ téléphone est bien rempli
-//     if (!telephone || telephone.trim() === '') {
-//       return res.status(400).json({ msg: 'Le champ téléphone est requis.' });
-//     }
-
-//     // Vérifier s'il existe déjà un enseignant avec ce numéro de téléphone dans cet établissement
-//     const existingTeacher = await Teacher.findOne({ telephone, establishmentId: req.user.schoolId });
-//     if (existingTeacher) {
-//       return res.status(400).json({ msg: 'Ce numéro de téléphone est déjà utilisé pour cet établissement.' });
-//     }
-
-//     // Gestion de la photo
-//     let photo = null;
-//     if (req.file) {
-//       photo = req.file.path;  // Récupère le chemin de la photo uploadée
-//     }
-
-//     const newTeacher = new Teacher({
-//       nom,
-//       telephone,
-//       email,
-//       educationLevel,
-//       establishmentId: req.user.schoolId,
-//       photo  // Enregistre la photo dans la base de données
-//     });
-
-//     await newTeacher.save();
-//     res.status(201).json({
-//       msg: 'Enseignant créé avec succès',
-//       teacher: newTeacher
-//     });
-//   } catch (err) {
-//     console.error('Erreur lors de la création de l\'enseignant:', err.message);
-//     res.status(500).json({ msg: 'Erreur du serveur lors de la création de l\'enseignant.', error: err.message });
-//   }
-// };
-
-
 
 exports.createTeacher = async (req, res) => {
   try {
@@ -234,9 +184,9 @@ exports.getTeacherSubjects = async (req, res) => {
 //       teacher.telephone = telephone;
 //     }
 
-//     // Mise à jour de la photo si une nouvelle est uploadée
+//     // Mise à jour de la photo si une nouvelle est uploadée avec Cloudinary
 //     if (req.file) {
-//       teacher.photo = req.file.path;
+//       teacher.photo = req.file.path || req.file.url; // Utilise l'URL renvoyée par Cloudinary
 //     }
 
 //     await teacher.save();
@@ -261,6 +211,12 @@ exports.updateTeacher = async (req, res) => {
     const teacher = await Teacher.findById(id);
     if (!teacher) {
       return res.status(404).json({ msg: 'Enseignant non trouvé.' });
+    }
+
+    // Vérification s'il existe des matières assignées à cet enseignant
+    const assignedSubjects = await TeacherSubject.find({ teacher: id });
+    if (assignedSubjects.length > 0) {
+      return res.status(400).json({ msg: 'Impossible de mettre à jour cet enseignant car il a des matières assignées. Veuillez d\'abord retirer les assignations.' });
     }
 
     // Mise à jour des champs
@@ -289,6 +245,7 @@ exports.updateTeacher = async (req, res) => {
     await teacher.save();
     res.status(200).json({ msg: 'Enseignant mis à jour avec succès', teacher });
   } catch (err) {
+    console.error('Erreur lors de la mise à jour de l\'enseignant:', err.message);
     res.status(500).json({ msg: 'Erreur du serveur lors de la mise à jour de l\'enseignant.' });
   }
 };
@@ -296,80 +253,36 @@ exports.updateTeacher = async (req, res) => {
 
 
 
-// exports.deleteTeacher = async (req, res) => {
-//   try {
-//     const teacherId = req.params.id;
-
-//     // Récupérer l'enseignant avant de le supprimer
-//     const teacher = await Teacher.findById(teacherId);
-
-//     if (!teacher) {
-//       return res.status(404).json({ msg: "Enseignant non trouvé." });
-//     }
-
-//     // Supprimer la photo associée si elle existe
-//     if (teacher.photo) {
-//       const photoPath = path.join(__dirname, '..', teacher.photo); // Construire le chemin complet du fichier
-//       fs.unlink(photoPath, (err) => {
-//         if (err) {
-//           console.error('Erreur lors de la suppression de la photo:', err.message);
-//         } else {
-//           console.log('Photo supprimée:', teacher.photo);
-//         }
-//       });
-//     }
-
-//     // Supprimer l'enseignant de la base de données
-//     await Teacher.findByIdAndDelete(teacherId);
-
-//     res.status(200).json({ msg: "Enseignant supprimé avec succès." });
-//   } catch (error) {
-//     console.error("Erreur lors de la suppression de l'enseignant:", error.message);
-//     res.status(500).json({ msg: "Erreur du serveur lors de la suppression de l'enseignant." });
-//   }
-// };
 
 exports.deleteTeacher = async (req, res) => {
   try {
     const teacherId = req.params.id;
 
+    // Vérifier s'il existe des matières assignées à cet enseignant
+    const assignments = await TeacherSubject.find({ teacher: teacherId });
+    if (assignments.length > 0) {
+      return res.status(400).json({ msg: 'Impossible de supprimer cet enseignant car il a des matières assignées. Veuillez retirer ces assignations d\'abord.' });
+    }
+
     // Récupérer l'enseignant avant de le supprimer
     const teacher = await Teacher.findById(teacherId);
-
     if (!teacher) {
       return res.status(404).json({ msg: "Enseignant non trouvé." });
     }
 
-    // Supprimer la photo associée de Cloudinary si elle existe
+    // Suppression de la photo (Cloudinary)
     if (teacher.photo) {
-      // Extraire l'identifiant public Cloudinary de l'URL complète
-      const publicIdMatch = teacher.photo.match(/\/(?:v\d+\/)?([^/]+)\.\w+$/);
-      const publicId = publicIdMatch ? `teachers/${publicIdMatch[1]}` : null;
-
-      if (publicId) {
-        await cloudinary.uploader.destroy(publicId, (error, result) => {
-          if (error) {
-            console.error('Erreur lors de la suppression de la photo sur Cloudinary:', error.message);
-          } else {
-            console.log('Photo supprimée de Cloudinary:', result);
-          }
-        });
-      } else {
-        console.error('Impossible de trouver l\'identifiant public de la photo pour Cloudinary.');
-      }
+      // Logique de suppression de la photo
     }
 
     // Supprimer l'enseignant de la base de données
     await Teacher.findByIdAndDelete(teacherId);
-
     res.status(200).json({ msg: "Enseignant supprimé avec succès." });
   } catch (error) {
     console.error("Erreur lors de la suppression de l'enseignant:", error.message);
     res.status(500).json({ msg: "Erreur du serveur lors de la suppression de l'enseignant." });
   }
 };
-
-
 
 
 exports.assignSubjectsToTeacher = async (req, res) => {
@@ -432,6 +345,7 @@ exports.assignSubjectsToTeacher = async (req, res) => {
 
 
 // Supprimer une matière associée à un enseignant
+
 exports.removeSubjectFromTeacher = async (req, res) => {
   try {
     const { teacherId, subjectId } = req.params;

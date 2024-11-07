@@ -8,7 +8,8 @@ const {
   updateSubject, 
   deleteSubject, 
   toggleSubjectActivation,
-  getSubjectsByLevel 
+  getSubjectsByLevel,
+  getSubjectsByClass
 } = require('../controllers/subjectController');
 
 const router = express.Router();
@@ -26,6 +27,10 @@ router.patch('/:id/toggle-active', protect, authorizeRole('Etablissement'), auth
 
 // Récupérer les matières par niveau pour les ressources pedagogiques
 router.get('/by-level', protect, authorizeRole('Etablissement'), getSubjectsByLevel);
+
+
+// Route pour récupérer les matières en fonction d'une classe
+router.get('/by-class', protect, authorizeRole('Etablissement'), getSubjectsByClass);
 
 module.exports = router;
 

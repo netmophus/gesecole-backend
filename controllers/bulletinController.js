@@ -172,12 +172,67 @@ const updateSemesterRank = async (newBulletin, period, classId, year) => {
 
 //=========================
 
+// exports.getBulletins = async (req, res) => {
+//   console.log('Start: Fetching bulletins with query:', req.query);
+//   try {
+//     const { search, page = 1, limit = 5 } = req.query;
+//     const establishmentId = req.user.schoolId; // Ajoutez ceci pour récupérer l'ID de l'établissement connecté
+//     const query = { establishmentId }; // Filtrez par establishmentId
+
+//     if (search) {
+//       query.$or = [
+//         { 'student.firstName': { $regex: search, $options: 'i' } },
+//         { 'student.lastName': { $regex: search, $options: 'i' } }
+//       ];
+//     }
+
+//     console.log('Database query:', query);
+
+//     const bulletins = await Bulletin.find(query)
+//       .populate('student', 'firstName lastName  dateOfBirth photo')
+//       .populate('classId', 'name')
+//       .populate({
+//         path: 'subjects.subject', // Populate subjects details
+//         select: 'name level',     // Assurez-vous que cela correspond aux champs nécessaires dans le modèle 'Subject'
+//       })
+//       .populate({
+//         path: 'subjects.teacher', // Populate teacher details
+//         select: 'nom',
+//       })
+//       .skip((page - 1) * limit)
+//       .limit(parseInt(limit));
+
+//     console.log('Bulletins retrieved:', bulletins);
+
+//     bulletins.forEach((bulletin, index) => {
+//       console.log(`Bulletin ${index + 1}:`);
+//       console.log(`  Student: ${bulletin.student ? bulletin.student.firstName + ' ' + bulletin.student.lastName : 'Not populated'}`);
+//       console.log(`  Class: ${bulletin.classId ? bulletin.classId.name : 'Not populated'}`);
+//       bulletin.subjects.forEach((subject, subIndex) => {
+//         console.log(`    Subject ${subIndex + 1}:`);
+//         console.log(`      Subject Details: ${subject.subject ? subject.subject.name + ', ' + subject.subject.level : 'Not populated'}`);
+//         console.log(`      Teacher: ${subject.teacher ? subject.teacher.nom : 'Not populated'}`);
+//       });
+//     });
+
+//     res.status(200).json(bulletins);
+//   } catch (err) {
+//     console.error('Error in getBulletins:', err.message);
+//     res.status(500).json({ msg: 'Erreur lors de la récupération des bulletins' });
+//   } finally {
+//     console.log('End: getBulletins');
+//   }
+// };
+
+
+// controllers/bulletinController.js
+
 exports.getBulletins = async (req, res) => {
   console.log('Start: Fetching bulletins with query:', req.query);
   try {
     const { search, page = 1, limit = 5 } = req.query;
-    const establishmentId = req.user.schoolId; // Ajoutez ceci pour récupérer l'ID de l'établissement connecté
-    const query = { establishmentId }; // Filtrez par establishmentId
+    const establishmentId = req.user.schoolId; // Récupérer l'ID de l'établissement connecté
+    const query = { establishmentId }; // Filtrer par establishmentId
 
     if (search) {
       query.$or = [
@@ -188,25 +243,30 @@ exports.getBulletins = async (req, res) => {
 
     console.log('Database query:', query);
 
+    // Trouver les bulletins avec la requête et peupler les données nécessaires
     const bulletins = await Bulletin.find(query)
-      .populate('student', 'firstName lastName  dateOfBirth photo')
-      .populate('classId', 'name')
+      .populate('student', 'firstName lastName dateOfBirth photo')
+      .populate('classId', 'name level')
+      .populate('establishmentId', 'name address phoneNumber contactEmail yearOfCreation type region promoterName code authorization') // Peupler toutes les données nécessaires de l'établissement
       .populate({
-        path: 'subjects.subject', // Populate subjects details
-        select: 'name level',     // Assurez-vous que cela correspond aux champs nécessaires dans le modèle 'Subject'
+        path: 'subjects.subject',
+        select: 'name level', // Assurez-vous que cela correspond aux champs nécessaires dans le modèle 'Subject'
       })
       .populate({
-        path: 'subjects.teacher', // Populate teacher details
-        select: 'nom',
+        path: 'subjects.teacher',
+        select: 'nom', // Assurez-vous que cela correspond au modèle 'Teacher'
       })
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
+    // Log pour vérifier que les données sont bien peuplées
     console.log('Bulletins retrieved:', bulletins);
 
+    // Itération pour log des détails de chaque bulletin
     bulletins.forEach((bulletin, index) => {
       console.log(`Bulletin ${index + 1}:`);
       console.log(`  Student: ${bulletin.student ? bulletin.student.firstName + ' ' + bulletin.student.lastName : 'Not populated'}`);
+      console.log(`  Establishment: ${bulletin.establishmentId ? bulletin.establishmentId.name : 'Not populated'}`);
       console.log(`  Class: ${bulletin.classId ? bulletin.classId.name : 'Not populated'}`);
       bulletin.subjects.forEach((subject, subIndex) => {
         console.log(`    Subject ${subIndex + 1}:`);
@@ -223,6 +283,7 @@ exports.getBulletins = async (req, res) => {
     console.log('End: getBulletins');
   }
 };
+
 
 
 

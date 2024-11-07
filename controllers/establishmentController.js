@@ -113,13 +113,6 @@ const configureEstablishment = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
 const createEstablishment = async (req, res) => {
   const { name, type, address } = req.body;
 
@@ -161,21 +154,6 @@ const checkEstablishmentConfig = async (req, res) => {
   }
 };
 
-
-
-
-
-// const getEstablishments = async (req, res) => {
-//   try {
-//     const establishments = await Establishment.find({ academicYear: req.query.academicYear || activeYear });
-//     res.json(establishments);
-    
-//   } catch (err) {
-//     console.error('Erreur lors de la récupération des établissements:', err.message);
-//     res.status(500).send('Erreur du serveur');
-//   }
-// };
-
 const getEstablishments = async (req, res) => {
   try {
     const { academicYearId } = req.query; // Récupérer l'ID de l'année académique
@@ -199,13 +177,6 @@ const getEstablishments = async (req, res) => {
     res.status(500).send('Erreur du serveur');
   }
 };
-
-
-
-
-
-
-
 
 const getEstablishmentById = async (req, res) => {
   try {

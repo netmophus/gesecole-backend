@@ -1,20 +1,17 @@
-const InscriptionBEPC = require('../../models/bepc/InscriptionBEPC'); // Modèle d'inscription BEPC
+const InscriptionCFEPD = require('../../models/cfepd/InscriptionCFEPD'); // Modèle d'inscription CFEPD
 const User = require('../../models/User'); // Modèle utilisateur
 const PDFDocument = require('pdfkit');
 
-// **Créer une inscription BEPC**
-
+// **Créer une inscription CFEPD**
 exports.createInscription = async (req, res) => {
   console.log("Données reçues dans req.body:", req.body);
-  console.log("Fichiers reçus:", req.files); // si vous attendez des fichiers
+  console.log("Fichiers reçus:", req.files);
 
   try {
-    // Générer la référence de paiement unique
     const timestamp = Date.now();
     const initiales = `${req.body.prenom.charAt(0)}${req.body.nom.charAt(0)}`.toUpperCase();
     const referencePaiement = `REF-${initiales}-${timestamp}`;
 
-    // Construire l'objet documents avec les URLs des fichiers si présents
     const documents = {};
     if (req.files) {
       documents.certificatNaissance = req.files.certificatNaissance?.[0]?.path || '';
@@ -25,8 +22,7 @@ exports.createInscription = async (req, res) => {
       documents.autresDocuments = req.files.autresDocuments?.[0]?.path || '';
     }
 
-    // Créer une nouvelle inscription en incluant les documents et la référence de paiement
-    const newInscription = new InscriptionBEPC({
+    const newInscription = new InscriptionCFEPD({
       matricule: req.body.matricule,
       referencePaiement: referencePaiement,
       prenom: req.body.prenom,
@@ -39,102 +35,27 @@ exports.createInscription = async (req, res) => {
       nomEtablissement: req.body.nomEtablissement,
       regionEtablissement: req.body.regionEtablissement,
       classe: req.body.classe,
-      langueVivante1: req.body.langueVivante1,
       directionRegionale: req.body.directionRegionale,
       inspectionRegionale: req.body.inspectionRegionale,
       montantPaiement: req.body.montantPaiement,
-      documents, // Inclure les documents ici
+      documents,
     });
 
     await newInscription.save();
     res.status(201).json(newInscription);
   } catch (error) {
-    console.error('Erreur lors de la création de l\'inscription:', error);
+    console.error('Erreur lors de la création de l\'inscription CFEPD:', error);
     res.status(400).json({ msg: 'Erreur lors de la validation des champs requis.', errors: error.errors });
   }
 };
 
-
-// exports.createInscription = async (req, res) => {
-//   try {
-//     const {
-//       prenom,
-//       nom,
-//       dateNaissance,
-//       lieuNaissance,
-//       genre,
-//       telephoneParent,
-//       emailParent,
-//       adresseParent,
-//       nomEtablissement,
-//       regionEtablissement,
-//       classe,
-//       anneeScolaire,
-//       langueVivante1,
-//       langueVivante2,
-//       matiereOptionnelle,
-//       directionRegionale,
-//       inspectionRegionale,
-//       montantPaiement
-//     } = req.body;
-
-//     // Générer une date de paiement (si elle est manquante, mettez par défaut la date actuelle)
-//     const datePaiement = req.body.datePaiement || new Date();
-
-//     // Gestion des fichiers joints (s'ils sont inclus dans la requête)
-//     const documents = {
-//       certificatNaissance: req.files?.certificatNaissance?.[0]?.path || '',
-//       certificatResidence: req.files?.certificatResidence?.[0]?.path || '',
-//       certificatScolarite: req.files?.certificatScolarite?.[0]?.path || '',
-//       photoIdentite: req.files?.photoIdentite?.[0]?.path || '',
-//       pieceIdentiteParent: req.files?.pieceIdentiteParent?.[0]?.path || '',
-//       autresDocuments: req.files?.autresDocuments?.[0]?.path || ''
-//     };
-
-//     // Création d'une nouvelle inscription avec les champs requis
-//     const newInscription = new InscriptionBEPC({
-//       prenom,
-//       nom,
-//       dateNaissance,
-//       lieuNaissance,
-//       genre,
-//       telephoneParent,
-//       emailParent,
-//       adresseParent,
-//       nomEtablissement,
-//       regionEtablissement,
-//       classe,
-//       anneeScolaire,
-//       langueVivante1,
-//       langueVivante2,
-//       matiereOptionnelle,
-//       montantPaiement: montantPaiement || 10000, // Par défaut 10,000 FCFA si non spécifié
-//       datePaiement,
-//       directionRegionale,
-//       inspectionRegionale,
-//       documents,
-//     });
-
-//     await newInscription.save();
-//     res.status(201).json({
-//       msg: 'Inscription créée avec succès.',
-//       inscription: newInscription
-//     });
-//   } catch (err) {
-//     console.error('Erreur lors de la création de l\'inscription:', err);
-//     res.status(500).json({ msg: 'Erreur serveur lors de la création de l\'inscription.' });
-//   }
-// };
-
-
-
-// **Mettre à jour le statut de paiement d’une inscription**
+// **Mettre à jour le statut de paiement d’une inscription CFEPD**
 exports.updatePaiementStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { paymentStatus } = req.body;
 
-    const inscription = await InscriptionBEPC.findById(id);
+    const inscription = await InscriptionCFEPD.findById(id);
     if (!inscription) {
       return res.status(404).json({ msg: 'Inscription non trouvée.' });
     }
@@ -149,12 +70,12 @@ exports.updatePaiementStatus = async (req, res) => {
   }
 };
 
-// **Récupérer les inscriptions par numéro de téléphone**
+// **Récupérer les inscriptions par numéro de téléphone CFEPD**
 exports.getInscriptionsByPhone = async (req, res) => {
   try {
     const { phone } = req.query;
 
-    const inscriptions = await InscriptionBEPC.find({ phone });
+    const inscriptions = await InscriptionCFEPD.find({ phone });
     if (!inscriptions.length) {
       return res.status(404).json({ msg: 'Aucune inscription trouvée pour ce numéro.' });
     }
@@ -166,10 +87,10 @@ exports.getInscriptionsByPhone = async (req, res) => {
   }
 };
 
-// **Récupérer les résultats BEPC**
+// **Récupérer les résultats CFEPD**
 exports.getResults = async (req, res) => {
   try {
-    const results = await InscriptionBEPC.find({ result: { $exists: true } });
+    const results = await InscriptionCFEPD.find({ result: { $exists: true } });
 
     res.status(200).json({ results });
   } catch (err) {
@@ -178,28 +99,28 @@ exports.getResults = async (req, res) => {
   }
 };
 
-// **Tableau de bord pour l’utilisateur BEPC**
+// **Tableau de bord pour l’utilisateur CFEPD**
 exports.getDashboard = async (req, res) => {
   try {
     const { user } = req;
-    const inscriptions = await InscriptionBEPC.find({ phone: user.phone });
+    const inscriptions = await InscriptionCFEPD.find({ phone: user.phone });
 
-    res.status(200).json({ msg: 'Tableau de bord BEPC.', inscriptions });
+    res.status(200).json({ msg: 'Tableau de bord CFEPD.', inscriptions });
   } catch (err) {
     console.error('Erreur lors de l\'accès au tableau de bord:', err);
     res.status(500).json({ msg: 'Erreur serveur lors de l\'accès au tableau de bord.' });
   }
 };
 
-// **Tableau de bord Admin BEPC**
+// **Tableau de bord Admin CFEPD**
 exports.getAdminDashboard = async (req, res) => {
   try {
-    const inscriptions = await InscriptionBEPC.find();
+    const inscriptions = await InscriptionCFEPD.find();
     const totalInscriptions = inscriptions.length;
     const pendingPayments = inscriptions.filter(ins => ins.paymentStatus === 'en attente').length;
 
     res.status(200).json({
-      msg: 'Tableau de bord Admin BEPC.',
+      msg: 'Tableau de bord Admin CFEPD.',
       totalInscriptions,
       pendingPayments,
     });
@@ -209,22 +130,17 @@ exports.getAdminDashboard = async (req, res) => {
   }
 };
 
-
-// Dans inscriptionBEPCController.js
-
+// **Générer le rapport PDF des inscriptions payées CFEPD**
 exports.generateReport = async (req, res) => {
   try {
     console.log('Début de la récupération des inscriptions avec paiement confirmé.');
     
-    // Récupérer les inscriptions avec paiement confirmé
-    const inscriptions = await InscriptionBEPC.find({
+    const inscriptions = await InscriptionCFEPD.find({
       referencePaiement: { $exists: true, $ne: null },
       montantPaiement: { $gt: 0 }
     });
 
     console.log(`Nombre d'inscriptions trouvées : ${inscriptions.length}`);
-
-    // Renvoyer les inscriptions sous forme de JSON pour utilisation dans le frontend
     res.status(200).json(inscriptions);
   } catch (error) {
     console.error('Erreur lors de la récupération des inscriptions :', error);
@@ -232,12 +148,11 @@ exports.generateReport = async (req, res) => {
   }
 };
 
-
-
+// **Récupérer les informations de l'élève par matricule CFEPD**
 exports.getInscriptionByMatricule = async (req, res) => {
   try {
     const { matricule } = req.params;
-    const inscription = await InscriptionBEPC.findOne({ matricule });
+    const inscription = await InscriptionCFEPD.findOne({ matricule });
 
     if (!inscription) {
       return res.status(404).json({ message: "Aucun élève trouvé avec ce matricule." });
@@ -249,9 +164,3 @@ exports.getInscriptionByMatricule = async (req, res) => {
     res.status(500).json({ message: "Erreur lors de la récupération des informations de l'élève." });
   }
 };
-
-
-
-
-
-

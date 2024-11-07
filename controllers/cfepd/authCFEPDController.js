@@ -5,24 +5,20 @@ const jwt = require('jsonwebtoken');
 // Génération de token JWT
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user._id, role: user.role, permissions: user.permissions }, // Simplifié sans l’objet `user`
+    { id: user._id, role: user.role, permissions: user.permissions },
     process.env.JWT_SECRET,
     { expiresIn: '1h' }
   );
 };
 
-
-
-// Permissions par rôle
+// Permissions par rôle pour CFEPD
 const permissionsByRole = {
-  bepcadmin: { create: true, read: true, update: true, delete: true },
-  bepc: { create: false, read: true, update: false, delete: false },
+  cfepdadmin: { create: true, read: true, update: true, delete: true },
+  cfepd: { create: false, read: true, update: false, delete: false },
 };
 
-
-// **Enregistrement d'un utilisateur BEPC**
-
-exports.registerBEPC = async (req, res) => {
+// **Enregistrement d'un utilisateur CFEPD**
+exports.registerCFEPD = async (req, res) => {
   const { name, phone, password } = req.body;
 
   try {
@@ -32,19 +28,18 @@ exports.registerBEPC = async (req, res) => {
       return res.status(400).json({ msg: 'Utilisateur avec ce numéro de téléphone déjà existant.' });
     }
 
-    // Attribuer les permissions pour le rôle BEPC
-    const userPermissions = { create: false, read: true, update: false, delete: false };
+    // Attribuer les permissions pour le rôle CFEPD
+    const userPermissions = permissionsByRole['cfepd'];
 
-    // Créer un nouvel utilisateur avec le rôle "bepc"
+    // Créer un nouvel utilisateur avec le rôle "cfepd"
     user = new User({
       name,
       phone,
       password,
-      role: 'bepc',  // Forcer le rôle à être "bepc"
+      role: 'cfepd',  // Forcer le rôle à être "cfepd"
       permissions: userPermissions,  // Attribuer les permissions ici
     });
 
-   
     // Enregistrer l'utilisateur en base de données
     await user.save();
 
@@ -53,14 +48,13 @@ exports.registerBEPC = async (req, res) => {
 
     res.status(201).json({ token, user: { id: user._id, name: user.name, role: user.role, permissions: user.permissions } });
   } catch (err) {
-    console.error('Erreur lors de l\'enregistrement BEPC:', err.message);
+    console.error('Erreur lors de l\'enregistrement CFEPD:', err.message);
     res.status(500).json({ msg: 'Erreur serveur' });
   }
 };
 
-
-
-exports.loginBEPC = async (req, res) => {
+// **Connexion d'un utilisateur CFEPD**
+exports.loginCFEPD = async (req, res) => {
   const { phone, password } = req.body;
 
   if (!phone || !password) {
@@ -80,8 +74,8 @@ exports.loginBEPC = async (req, res) => {
       return res.status(401).json({ msg: 'Mot de passe incorrect.' });
     }
 
-    // Vérifiez si le rôle est lié au BEPC
-    const validRoles = ['bepc', 'bepcadmin', 'admincentralbepc'];
+    // Vérifiez si le rôle est lié au CFEPD
+    const validRoles = ['cfepd', 'cfepdadmin'];
     if (!validRoles.includes(user.role)) {
       return res.status(403).json({ msg: 'Accès interdit pour ce rôle.' });
     }
@@ -100,26 +94,32 @@ exports.loginBEPC = async (req, res) => {
       } 
     });
   } catch (err) {
-    console.error('Erreur lors de la connexion BEPC:', err.message);
+    console.error('Erreur lors de la connexion CFEPD:', err.message);
     res.status(500).json({ msg: 'Erreur serveur, veuillez réessayer plus tard.' });
   }
 };
 
-
-// **Obtenir le profil utilisateur BEPC**
-
-
-
-// Logout pour l'utilisateur BEPC
-exports.logoutBEPC = async (req, res) => {
+// **Obtenir le profil utilisateur CFEPD**
+exports.getProfileCFEPD = async (req, res) => {
   try {
-    // Suppression du token du stockage local côté client
-    res.clearCookie('token'); // Optionnel si vous utilisez un cookie pour le token
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ msg: 'Utilisateur non trouvé.' });
+    }
+    res.json(user);
+  } catch (err) {
+    console.error('Erreur lors de la récupération du profil:', err.message);
+    res.status(500).json({ msg: 'Erreur serveur' });
+  }
+};
 
+// **Déconnexion d'un utilisateur CFEPD**
+exports.logoutCFEPD = async (req, res) => {
+  try {
+    res.clearCookie('token'); // Optionnel si vous utilisez un cookie pour le token
     res.status(200).json({ msg: 'Déconnexion réussie. À bientôt !' });
   } catch (err) {
     console.error('Erreur lors de la déconnexion:', err);
     res.status(500).json({ msg: 'Erreur serveur lors de la déconnexion.' });
   }
 };
-

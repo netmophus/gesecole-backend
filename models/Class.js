@@ -1,3 +1,4 @@
+
 // const mongoose = require('mongoose');
 
 // const ClassSchema = new mongoose.Schema({
@@ -8,6 +9,12 @@
 //   level: {
 //     type: String,
 //     required: true,
+//     enum: ['Primaire', 'Collège', 'Lycée'], // Niveau de la classe (primaire, collège, lycée)
+//   },
+//   series: { 
+//     type: String, 
+//     enum: ['A', 'C', 'D', 'E', 'F', 'G'], 
+//     default: null  // Ajout d'une valeur par défaut
 //   },
 //   maxStudents: {
 //     type: Number,
@@ -18,22 +25,17 @@
 //     ref: 'Establishment',
 //     required: true,
 //   },
-//   teachers: [{
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'User', // Référence au modèle User pour les enseignants
-//     required: false, // Cette association est optionnelle
-//   }],
 //   createdAt: {
 //     type: Date,
 //     default: Date.now,
 //   },
 // });
 
+// ClassSchema.index({ name: 1, level: 1, series: 1, establishment: 1 }, { unique: true });
+
 // const Class = mongoose.model('Class', ClassSchema);
 
 // module.exports = Class;
-
-
 
 const mongoose = require('mongoose');
 
@@ -61,17 +63,18 @@ const ClassSchema = new mongoose.Schema({
     ref: 'Establishment',
     required: true,
   },
-  teachers: [{
+  students: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Référence au modèle User pour les enseignants
-    required: false, // Cette association est optionnelle
+    ref: 'Student', // Référence au modèle Student
+    required: false, // Une classe peut avoir 0 ou plusieurs étudiants
   }],
-
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
+
+ClassSchema.index({ name: 1, level: 1, series: 1, establishment: 1 }, { unique: true });
 
 const Class = mongoose.model('Class', ClassSchema);
 

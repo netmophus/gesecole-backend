@@ -15,6 +15,16 @@ const AcademicYearSchema = new mongoose.Schema({
   }
 });
 
+
+AcademicYearSchema.index({ startYear: 1, endYear: 1 }, { unique: true });
+
+AcademicYearSchema.pre('save', async function (next) {
+  if (this.isActive) {
+    await AcademicYear.updateMany({ _id: { $ne: this._id } }, { isActive: false });
+  }
+  next();
+});
+
 const AcademicYear = mongoose.model('AcademicYear', AcademicYearSchema);
 
 module.exports = AcademicYear;

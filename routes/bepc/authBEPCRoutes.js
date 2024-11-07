@@ -12,7 +12,7 @@ router.post('/login', loginBEPC);
 // **Route pour la déconnexion des utilisateurs BEPC**
 router.post('/logout', protectBEPC, logoutBEPC);
 
-router.get('/profile', protectBEPC, getProfileBEPC);
+// router.get('/profile', protectBEPC, getProfileBEPC);
 
 
 module.exports = router;

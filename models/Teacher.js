@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const TeacherSchema = new mongoose.Schema({
@@ -19,27 +18,20 @@ const TeacherSchema = new mongoose.Schema({
     ref: 'Establishment',
     required: true,
   },
- 
   educationLevel: {
     type: String,
-    enum: ['Primaire', 'Collège', 'Lycée'],  // Niveaux d'enseignement
+    enum: ['Primaire', 'Collège', 'Lycée'],
     required: true,
   },
-
   photo: {
-    type: String,  // Ce champ stockera l'URL ou le chemin de la photo
+    type: String,
   },
-  
 }, {
   timestamps: true,
 });
 
-
-
 // Contrainte d'unicité sur la combinaison du téléphone et de l'établissement
 TeacherSchema.index({ telephone: 1, establishmentId: 1 }, { unique: true });
-
-
 
 const Teacher = mongoose.model('Teacher', TeacherSchema);
 

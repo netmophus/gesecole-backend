@@ -4,7 +4,11 @@ const Teacher = require('../models/Teacher');
 const TeacherSubject = require('../models/TeacherSubject'); // Importer le modèle d'association entre enseignants et matières
 const AcademicYear = require('../models/AcademicYear');
 
+
 exports.createSubject = async (req, res) => {
+
+
+
   try {
     const { name, level, teachers, isActive } = req.body;
     const { user } = req;
@@ -26,11 +30,11 @@ exports.createSubject = async (req, res) => {
     }
 
 
-
-    if (!user.permissions.create) {
+     if (!user.permissions || !user.permissions.create) {
       console.log("Accès refusé : permission non accordée.");
       return res.status(403).json({ msg: 'Accès refusé : vous n\'avez pas la permission de créer une matière.' });
     }
+    
 
     // Validation des champs requis
     if (!name || !level) {
@@ -39,18 +43,12 @@ exports.createSubject = async (req, res) => {
     }
 
 
-
-    if (!user.schoolId) {
-      console.log("Utilisateur non autorisé : établissement non spécifié.");
-      return res.status(400).json({ msg: 'Utilisateur non autorisé : établissement non spécifié.' });
-    }
-    
-
-    // Validation de l'utilisateur et de l'établissement
     if (!user || !user.schoolId) {
       console.log("Utilisateur non autorisé ou établissement non spécifié.");
       return res.status(400).json({ msg: 'Utilisateur non autorisé ou établissement non spécifié.' });
     }
+    
+
 
     // Validation des enseignants (s'il y en a)
     if (teachers && teachers.length > 0) {
@@ -248,33 +246,6 @@ res.status(200).json({
 };
 
 
-// exports.toggleSubjectActivation = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const subject = await Subject.findById(id);
-
-//     if (!subject) {
-//       return res.status(404).json({ msg: 'Matière non trouvée.' });
-//     }
-
-//     // Vérifier si l'état demandé est déjà le même
-//     if (subject.isActive && req.body.isActive === true) {
-//       return res.status(400).json({ msg: 'La matière est déjà activée.' });
-//     }
-
-//     if (!subject.isActive && req.body.isActive === false) {
-//       return res.status(400).json({ msg: 'La matière est déjà désactivée.' });
-//     }
-
-//     // Inverser l'état actif de la matière si tout est en ordre
-//     subject.isActive = !subject.isActive;
-//     await subject.save();
-
-//     res.status(200).json({ msg: `Matière ${subject.isActive ? 'activée' : 'désactivée'} avec succès.`, subject });
-//   } catch (err) {
-//     res.status(500).json({ msg: 'Erreur lors de l\'activation/désactivation de la matière.', error: err.message });
-//   }
-// };
 
 exports.toggleSubjectActivation = async (req, res) => {
   try {
@@ -359,11 +330,77 @@ res.json({
 
 // Récupérer les matières par niveau (Collège ou Lycée)
 exports.getSubjectsByLevel = async (req, res) => {
-  const { level } = req.query; // Récupérer le niveau depuis les paramètres de requête
+  const { level, classId } = req.query; // Récupérer le niveau et l'ID de la classe depuis les paramètres de requête
+  console.log('Niveau reçu:', level);
+  console.log('ID de la classe reçu:', classId);
+
   try {
     const subjects = await Subject.find({ level });
-    res.status(200).json(subjects);
+    console.log('Matières trouvées:', subjects); // Log des matières trouvées
+
+    res.status(200).json({ subjects });
   } catch (error) {
+    console.error('Erreur lors de la récupération des matières:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
+
+
+// subjectController.js
+exports.getSubjectsByClass = async (req, res) => {
+  const { classId, level } = req.query;
+  try {
+      if (!classId || !level) {
+          return res.status(400).json({ msg: 'L\'ID de la classe et le niveau sont requis' });
+      }
+
+      console.log('Récupération des matières pour la classe:', classId, 'et le niveau:', level);
+
+      // Recherchez les matières en fonction de l'ID de la classe et du niveau
+      const subjects = await Subject.find({ level, class: classId }); // Si vous n'avez pas le champ class dans Subject, vous pouvez le remplacer par autre chose comme level
+
+      if (!subjects || subjects.length === 0) {
+          console.log('Aucune matière trouvée pour cette classe et ce niveau.');
+          return res.status(404).json({ msg: 'Aucune matière trouvée pour cette classe et ce niveau.' });
+      }
+
+      res.status(200).json({ subjects });
+  } catch (error) {
+      console.error('Erreur interne lors de la récupération des matières:', error.message);
+      res.status(500).json({ msg: 'Erreur interne du serveur lors de la récupération des matières' });
+  }
+};
+
+
+
+
+//   try {
+//     // Récupérer le niveau, l'établissement et l'année académique depuis les requêtes
+//     const { level } = req.query; // Utilisation de req.query au lieu de req.params
+//     const { establishmentId, academicYearId } = req.query;
+
+//     // Vérification que tous les paramètres nécessaires sont fournis
+//     if (!level || !establishmentId || !academicYearId) {
+//       return res.status(400).json({ msg: 'Tous les paramètres (niveau, établissement, année académique) sont requis.' });
+//     }
+
+//     // Récupérer les matières en fonction du niveau, de l'établissement et de l'année académique
+//     const subjects = await Subject.find({ 
+//       level, 
+//       establishment: establishmentId, 
+//       academicYear: academicYearId,
+//       isActive: true 
+//     });
+
+//     // Vérifier si des matières ont été trouvées
+//     if (!subjects.length) {
+//       return res.status(404).json({ msg: 'Aucune matière trouvée pour ces critères.' });
+//     }
+
+//     // Envoyer les matières trouvées en réponse
+//     res.status(200).json(subjects);
+//   } catch (error) {
+//     console.error('Erreur lors de la récupération des matières:', error.message);
+//     res.status(500).json({ msg: 'Erreur lors de la récupération des matières.' });
+//   }
+// };

@@ -10,6 +10,7 @@ const {
     generateSchoolCards,
     getSchoolCards,
     getStudentsByClass,
+    regeneratePassword,
     deleteAllSchoolCards // Ajout de l'import pour la suppression de toutes les cartes
 } = require('../controllers/studentController');
 const { protect, authorizeRole, authorize } = require('../middleware/authMiddleware');
@@ -110,5 +111,14 @@ router.get(
   getStudentNotes
 );
 
+
+// Route pour régénérer le mot de passe d'un étudiant
+router.post(
+  '/regenerate-password', 
+  protect, 
+  authorizeRole('Etablissement'), 
+  authorize('update'), 
+  regeneratePassword
+);
 
 module.exports = router;

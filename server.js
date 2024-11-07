@@ -28,6 +28,8 @@ const PedagogicalSubjectRoutes = require('./routes/PedagogicalSubjectRoutes');
 const inscriptionBEPCRoutes = require('./routes/bepc/inscriptionBEPCRoutes');
 const authBEPCRoutes = require('./routes/bepc/authBEPCRoutes');
 
+const inscriptionCFEPDRoutes = require('./routes/cfepd/inscriptionCFEPDRoutes');
+const authCFEPDRoutes = require('./routes/cfepd/authCFEPDRoutes');
 
 // Charger la configuration
 dotenv.config();
@@ -52,7 +54,7 @@ app.use(cors({
     'http://localhost:3001',
     'http://localhost:3002'
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH' , 'DELETE', 'OPTIONS'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -112,6 +114,13 @@ app.use('/api/bepc/inscription', inscriptionBEPCRoutes);
 // Middleware pour les routes d'authentification BEPC
 app.use('/api/bepc/auth', authBEPCRoutes);
 
+
+
+//app.use('/api/bepc/inscription', inscriptionBEPCRoutes);
+app.use('/api/cfepd/inscription', inscriptionCFEPDRoutes);
+
+// Middleware pour les routes d'authentification BEPC
+app.use('/api/cfepd/auth', authCFEPDRoutes);
 
 
 

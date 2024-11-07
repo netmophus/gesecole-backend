@@ -142,9 +142,12 @@ exports.registerUser = async (req, res) => {
 
 
 
+
+
+
 exports.loginUser = async (req, res) => {
   const { identifier, password } = req.body;
-  console.log('Identifiant reçu pour la connexion:', identifier); // Log de l'identifiant reçu
+  console.log('Identifiant reçu pour la connexion:', identifier);
 
   const phoneRegex = /^\+\d{3}\d{8}$/;
   let user;
@@ -157,17 +160,14 @@ exports.loginUser = async (req, res) => {
         return res.status(400).json({ msg: 'Numéro de téléphone ou mot de passe incorrect' });
       }
     } else {
-      // Log supplémentaire pour afficher ce que contient l'identifiant (matricule)
       console.log(`Recherche d'un élève avec le matricule : ${identifier}`);
       
       const student = await Student.findOne({ matricule: identifier });
-
       if (!student) {
         logger.warn(`Tentative de connexion échouée : élève non trouvé avec le matricule - ${identifier}`);
         return res.status(400).json({ msg: 'Matricule ou mot de passe incorrect' });
       }
 
-      // Log pour vérifier si un utilisateur associé au studentId existe bien
       console.log(`Récupération de l'utilisateur associé au studentId : ${student._id}`);
       user = await User.findOne({ studentId: student._id });
 
@@ -177,13 +177,11 @@ exports.loginUser = async (req, res) => {
       }
     }
 
-    // Vérification si l'utilisateur est actif
     if (!user.isActive) {
       logger.warn(`Tentative de connexion échouée : compte désactivé pour - ${identifier}`);
       return res.status(403).json({ msg: 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.' });
     }
 
-    // Vérification du mot de passe
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       user.loginAttempts += 1;
@@ -192,17 +190,14 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ msg: 'Identifiant ou mot de passe incorrect' });
     }
 
+    console.log('Mot de passe reçu pour la connexion:', password);
+
+
     user.loginAttempts = 0;
     await user.save();
 
-    // Récupérer l'année académique active
     const activeYear = await AcademicYear.findOne({ isActive: true });
-
-
-
-    // Si une année académique active est trouvée, formatez-la comme 'startYear - endYear'
     const formattedAcademicYear = activeYear ? `${activeYear.startYear} - ${activeYear.endYear}` : null;
-
 
     const payload = {
       user: {
@@ -223,18 +218,19 @@ exports.loginUser = async (req, res) => {
           role: user.role,
           schoolId: user.schoolId,
           isConfigured: user.isConfigured,
-          academicYear: formattedAcademicYear // Année académique sous la forme '2023 - 2024'
+          academicYear: formattedAcademicYear,
         });
         logger.info(`Connexion réussie : ${identifier}`);
       }
     );
 
+   
+    
   } catch (err) {
     console.error('Erreur du serveur:', err.message);
     res.status(500).send('Erreur du serveur');
   }
 };
-
 
 exports.getUserProfile = async (req, res) => {
   try {

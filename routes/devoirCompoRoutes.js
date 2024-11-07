@@ -6,7 +6,9 @@ const {
   getDevoirCompoById,
   updateDevoirCompo,
   deleteDevoirCompo,
-  getStudentNotes
+  getStudentNotes,
+  calculateAverageForSubject,
+  getAverageBySubjectAndSemester
 } = require('../controllers/devoirCompoController');
 
 const router = express.Router();
@@ -25,5 +27,16 @@ router.route('/:id')
 
 
   router.get('/student/:id', protect, getStudentNotes); // Récupère les notes d'un élève
+
+
+
+  // Route pour calculer la moyenne d'un élève pour une matière et un semestre spécifique
+router.get('/average/:studentId/:subjectId/:semester', protect, calculateAverageForSubject);
+
+// Nouvelle route pour calculer la moyenne par matière et semestre
+router.get('/average/:studentId/:subjectId/:semester', protect, getAverageBySubjectAndSemester);
+
+
+
 
 module.exports = router;
