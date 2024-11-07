@@ -19,6 +19,8 @@ exports.protect = async (req, res, next) => {
       // Récupérer l'utilisateur associé au token sans le mot de passe
       req.user = await User.findById(decoded.user.id).select('-password');
 
+      console.log("Utilisateur connecté :", req.user);  // Debugging: Affiche les informations de l'utilisateur
+
        // Rôles autorisés à accéder au module 
        const authorizedRoles = ['Admin', 'Enseignant', 'Eleve', 'Inspection', 'Regional', 'Parent', 'Etablissement'];
 
@@ -59,6 +61,7 @@ exports.protect = async (req, res, next) => {
 exports.authorize = (action) => {
   return (req, res, next) => {
     const userPermissions = req.user.permissions;
+    console.log("Permissions de l'utilisateur pour l'action", action, ":", userPermissions);  // Debugging: Affiche les permissions
 
     // Vérifie si l'utilisateur a la permission pour l'action spécifiée
     if (!userPermissions[action]) {
@@ -72,6 +75,8 @@ exports.authorize = (action) => {
 // Role-Based Authorization: Allow specific roles (e.g., 'Admin') to access certain routes
 exports.authorizeRole = (role) => {
   return (req, res, next) => {
+    console.log("Vérification du rôle - rôle requis:", role, "Rôle de l'utilisateur:", req.user.role);
+
     if (req.user.role !== role) {
       return res.status(403).json({ msg: 'Accès interdit : vous n\'avez pas le rôle requis pour effectuer cette action' });
     }

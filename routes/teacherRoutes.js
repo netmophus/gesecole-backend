@@ -4,7 +4,8 @@
 const express = require('express');
 const router = express.Router();
 const teacherController = require('../controllers/teacherController');
-const { protect, authorize, authorizeRole } = require('../middleware/authMiddleware');
+//const { protect, authorize, authorizeRole } = require('../middleware/authMiddleware');
+const { protect, authorizeRole, authorize } = require('../middleware/authMiddleware');
 const uploadTeacherPhoto = require('../middleware/uploadTeacherPhoto');  // Import du middleware multer pour les enseignants
 
 

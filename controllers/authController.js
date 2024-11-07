@@ -182,7 +182,7 @@ exports.loginUser = async (req, res) => {
       return res.status(403).json({ msg: 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch =  bcrypt.compare(password, user.password);
     if (!isMatch) {
       user.loginAttempts += 1;
       await user.save();
@@ -203,9 +203,11 @@ exports.loginUser = async (req, res) => {
       user: {
         id: user.id,
         role: user.role,
+        permissions: user.permissions,  // Ajouter les permissions ici
         schoolId: user.schoolId,
       }
     };
+
 
     jwt.sign(
       payload,
@@ -217,6 +219,7 @@ exports.loginUser = async (req, res) => {
           token,
           role: user.role,
           schoolId: user.schoolId,
+          permissions: user.permissions,  // Ajouter les permissions ici
           isConfigured: user.isConfigured,
           academicYear: formattedAcademicYear,
         });
