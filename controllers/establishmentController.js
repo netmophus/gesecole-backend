@@ -3,12 +3,6 @@ const User = require('../models/User');
 const AcademicYear = require('../models/AcademicYear');  // Assurez-vous que le chemin est correct
 const mongoose = require('mongoose');
 
-// const mongoose = require('mongoose');
-// const AcademicYear = require('../models/AcademicYear');
-// const Establishment = require('../models/Establishment');
-// const User = require('../models/User');
-
-
 
 const configureEstablishment = async (req, res) => {
   const {
