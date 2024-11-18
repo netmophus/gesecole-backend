@@ -11,9 +11,23 @@ exports.protectBEPC = async (req, res, next) => {
 
       console.log('Decoded JWT:', decoded); // Ajoutez ceci pour voir ce que contient `decoded`
 
+
+      if (!decoded.id) {
+        return res.status(401).json({ msg: 'Token invalide : ID utilisateur manquant' });
+      }
+      
       req.user = await User.findById(decoded.id).select('-password');
 
+      if (!req.user) {
+        return res.status(404).json({ msg: 'Utilisateur non trouvé' });
+      }
+
+      console.log('Utilisateur connecté dans protectBEPC:', req.user); // Debugging: Voir l'utilisateur connecté
+
+
       const authorizedRoles = ['bepc', 'bepcadmin', 'admincentralbepc'];
+
+
       if (!authorizedRoles.includes(req.user.role)) {
         return res.status(403).json({ msg: 'Accès interdit : vous n\'avez pas le rôle approprié' });
       }

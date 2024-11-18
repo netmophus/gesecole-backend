@@ -8,6 +8,13 @@ exports.createInscription = async (req, res) => {
   console.log("Données reçues dans req.body:", req.body);
   console.log("Fichiers reçus:", req.files); // si vous attendez des fichiers
 
+
+
+  console.log("Utilisateur connecté (agent de saisie) dans createInscription :", {
+    id: req.user._id,
+    name: req.user.name,
+    role: req.user.role,
+  });
   try {
     // Générer la référence de paiement unique
     const timestamp = Date.now();
@@ -44,10 +51,23 @@ exports.createInscription = async (req, res) => {
       inspectionRegionale: req.body.inspectionRegionale,
       montantPaiement: req.body.montantPaiement,
       documents, // Inclure les documents ici
+      agentId: req.user.id, // Ajouter l'ID de l'agent connecté
     });
 
+
+    console.log('Nouvelle inscription avec agentId:', newInscription);
+
+
     await newInscription.save();
-    res.status(201).json(newInscription);
+
+    // Ajouter manuellement les informations de l'agent à la réponse
+const inscriptionResponse = {
+  ...newInscription.toObject(),
+  agentName: req.user.name, // Ajoute le nom de l'agent
+};
+
+
+    res.status(201).json(inscriptionResponse);
   } catch (error) {
     console.error('Erreur lors de la création de l\'inscription:', error);
     res.status(400).json({ msg: 'Erreur lors de la validation des champs requis.', errors: error.errors });

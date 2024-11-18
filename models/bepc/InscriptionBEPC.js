@@ -212,6 +212,14 @@ const inscriptionBepcSchema = new mongoose.Schema({
     default: 10000,
   },
 
+
+  agentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // Référence au modèle User
+    required: true,
+  },
+  
+
   // Documents joints (URL ou fichiers)
   documents: {
     certificatNaissance: String,
