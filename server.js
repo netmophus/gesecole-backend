@@ -31,6 +31,10 @@ const authBEPCRoutes = require('./routes/bepc/authBEPCRoutes');
 const inscriptionCFEPDRoutes = require('./routes/cfepd/inscriptionCFEPDRoutes');
 const authCFEPDRoutes = require('./routes/cfepd/authCFEPDRoutes');
 
+const cfepdAdminRoutes = require('./routes/cfepd/cfepdAdminRoutes'); // Importation des routes CFEPD Admin
+const bepcAdminRoutes = require('./routes/bepc/bepcAdminRoutes'); // Chemin vers vos routes BEPC
+
+
 // Charger la configuration
 dotenv.config();
 
@@ -122,6 +126,9 @@ app.use('/api/cfepd/inscription', inscriptionCFEPDRoutes);
 // Middleware pour les routes d'authentification BEPC
 app.use('/api/cfepd/auth', authCFEPDRoutes);
 
+// Déclaration de la route principale pour CFEPD Admin
+app.use('/api/cfepdadmin', cfepdAdminRoutes);
+app.use('/api/bepcadmin', bepcAdminRoutes);
 
 
 // Route par défaut

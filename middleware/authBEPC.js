@@ -41,3 +41,26 @@ exports.protectBEPC = async (req, res, next) => {
     return res.status(401).json({ msg: 'Non autorisé, aucun token fourni' });
   }
 };
+
+
+
+exports.protectBEPCAdmin = async (req, res, next) => {
+  try {
+    // Vérifiez si req.user est défini
+    if (!req.user) {
+      return res.status(401).json({ msg: 'Accès interdit : utilisateur non authentifié.' });
+    }
+
+    // Vérifiez si l'utilisateur a le rôle bepcadmin
+    if (req.user.role !== 'bepcadmin') {
+      return res.status(403).json({ msg: 'Accès interdit : réservé aux administrateurs BEPC.' });
+    }
+
+    // Passe au middleware suivant si tout est correct
+    next();
+  } catch (error) {
+    console.error('Erreur dans protectBEPCAdmin:', error);
+    res.status(500).json({ msg: 'Erreur serveur lors de la vérification des autorisations.' });
+  }
+};
+

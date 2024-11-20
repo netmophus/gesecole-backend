@@ -58,12 +58,30 @@ const inscriptionCFEPDSchema = new mongoose.Schema({
     default: Date.now,
   },
 
+  agentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // Référence au modèle User
+    required: true,
+  },
+  
+
   // Matricule unique de l'élève
   matricule: {
     type: String,
     unique: true,
     required: true,
   },
+
+    // Informations régionales
+    directionRegionale: {
+      type: String,
+      required: true,
+    },
+    inspectionRegionale: {
+      type: String,
+      required: true,
+    },
+  
 
   // Suivi du paiement
   referencePaiement: {

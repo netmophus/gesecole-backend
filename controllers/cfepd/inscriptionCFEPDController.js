@@ -39,12 +39,25 @@ exports.createInscription = async (req, res) => {
       inspectionRegionale: req.body.inspectionRegionale,
       montantPaiement: req.body.montantPaiement,
       documents,
+      agentId: req.user._id, // Inclure l'ID de l'agent connecté
     });
 
     await newInscription.save();
-    res.status(201).json(newInscription);
+
+    // Récupérer les détails de l'agent pour la réponse
+    const populatedInscription = await InscriptionCFEPD.findById(newInscription._id).populate('agentId', 'name email');
+
+    res.status(201).json(populatedInscription);
   } catch (error) {
     console.error('Erreur lors de la création de l\'inscription CFEPD:', error);
+
+
+    if (error.code === 11000 && error.keyPattern?.matricule) {
+      return res.status(409).json({ msg: 'Le matricule existe déjà. Veuillez vérifier vos informations.' });
+    }
+
+
+
     res.status(400).json({ msg: 'Erreur lors de la validation des champs requis.', errors: error.errors });
   }
 };

@@ -4,24 +4,94 @@ const PDFDocument = require('pdfkit');
 
 // **Créer une inscription BEPC**
 
+// exports.createInscription = async (req, res) => {
+//   console.log("Données reçues dans req.body:", req.body);
+//   console.log("Fichiers reçus:", req.files); // si vous attendez des fichiers
+
+
+
+//   console.log("Utilisateur connecté (agent de saisie) dans createInscription :", {
+//     id: req.user._id,
+//     name: req.user.name,
+//     role: req.user.role,
+//   });
+//   try {
+//     // Générer la référence de paiement unique
+//     const timestamp = Date.now();
+//     const initiales = `${req.body.prenom.charAt(0)}${req.body.nom.charAt(0)}`.toUpperCase();
+//     const referencePaiement = `REF-${initiales}-${timestamp}`;
+
+//     // Construire l'objet documents avec les URLs des fichiers si présents
+//     const documents = {};
+//     if (req.files) {
+//       documents.certificatNaissance = req.files.certificatNaissance?.[0]?.path || '';
+//       documents.certificatResidence = req.files.certificatResidence?.[0]?.path || '';
+//       documents.certificatScolarite = req.files.certificatScolarite?.[0]?.path || '';
+//       documents.photoIdentite = req.files.photoIdentite?.[0]?.path || '';
+//       documents.pieceIdentiteParent = req.files.pieceIdentiteParent?.[0]?.path || '';
+//       documents.autresDocuments = req.files.autresDocuments?.[0]?.path || '';
+//     }
+
+//     // Créer une nouvelle inscription en incluant les documents et la référence de paiement
+//     const newInscription = new InscriptionBEPC({
+//       matricule: req.body.matricule,
+//       referencePaiement: referencePaiement,
+//       prenom: req.body.prenom,
+//       nom: req.body.nom,
+//       dateNaissance: req.body.dateNaissance,
+//       lieuNaissance: req.body.lieuNaissance,
+//       genre: req.body.genre,
+//       telephoneParent: req.body.telephoneParent,
+//       adresseParent: req.body.adresseParent,
+//       nomEtablissement: req.body.nomEtablissement,
+//       regionEtablissement: req.body.regionEtablissement,
+//       classe: req.body.classe,
+//       langueVivante1: req.body.langueVivante1,
+//       directionRegionale: req.body.directionRegionale,
+//       inspectionRegionale: req.body.inspectionRegionale,
+//       montantPaiement: req.body.montantPaiement,
+//       documents, // Inclure les documents ici
+//       agentId: req.user.id, // Ajouter l'ID de l'agent connecté
+//     });
+
+
+//     console.log('Nouvelle inscription avec agentId:', newInscription);
+
+
+//     await newInscription.save();
+
+//     // Ajouter manuellement les informations de l'agent à la réponse
+// const inscriptionResponse = {
+//   ...newInscription.toObject(),
+//   agentName: req.user.name, // Ajoute le nom de l'agent
+// };
+
+
+//     res.status(201).json(inscriptionResponse);
+//   } catch (error) {
+//     console.error('Erreur lors de la création de l\'inscription:', error);
+//     res.status(400).json({ msg: 'Erreur lors de la validation des champs requis.', errors: error.errors });
+//   }
+// };
+
+
 exports.createInscription = async (req, res) => {
   console.log("Données reçues dans req.body:", req.body);
-  console.log("Fichiers reçus:", req.files); // si vous attendez des fichiers
+  console.log("Fichiers reçus:", req.files);
 
-
-
-  console.log("Utilisateur connecté (agent de saisie) dans createInscription :", {
-    id: req.user._id,
-    name: req.user.name,
-    role: req.user.role,
-  });
   try {
-    // Générer la référence de paiement unique
+    // Vérifier la duplication sur le matricule
+    const existingInscription = await InscriptionBEPC.findOne({ matricule: req.body.matricule });
+    if (existingInscription) {
+      return res.status(409).json({ msg: 'Le matricule existe déjà. Veuillez vérifier vos informations.' });
+    }
+
+    // Générer une référence de paiement unique
     const timestamp = Date.now();
     const initiales = `${req.body.prenom.charAt(0)}${req.body.nom.charAt(0)}`.toUpperCase();
     const referencePaiement = `REF-${initiales}-${timestamp}`;
 
-    // Construire l'objet documents avec les URLs des fichiers si présents
+    // Construire les documents (s'il y a des fichiers)
     const documents = {};
     if (req.files) {
       documents.certificatNaissance = req.files.certificatNaissance?.[0]?.path || '';
@@ -32,7 +102,7 @@ exports.createInscription = async (req, res) => {
       documents.autresDocuments = req.files.autresDocuments?.[0]?.path || '';
     }
 
-    // Créer une nouvelle inscription en incluant les documents et la référence de paiement
+    // Créer l'inscription
     const newInscription = new InscriptionBEPC({
       matricule: req.body.matricule,
       referencePaiement: referencePaiement,
@@ -46,34 +116,29 @@ exports.createInscription = async (req, res) => {
       nomEtablissement: req.body.nomEtablissement,
       regionEtablissement: req.body.regionEtablissement,
       classe: req.body.classe,
-      langueVivante1: req.body.langueVivante1,
       directionRegionale: req.body.directionRegionale,
       inspectionRegionale: req.body.inspectionRegionale,
       montantPaiement: req.body.montantPaiement,
-      documents, // Inclure les documents ici
-      agentId: req.user.id, // Ajouter l'ID de l'agent connecté
+      documents,
+      agentId: req.user._id, // L'ID de l'agent connecté
     });
-
-
-    console.log('Nouvelle inscription avec agentId:', newInscription);
-
 
     await newInscription.save();
 
-    // Ajouter manuellement les informations de l'agent à la réponse
-const inscriptionResponse = {
-  ...newInscription.toObject(),
-  agentName: req.user.name, // Ajoute le nom de l'agent
-};
+    // Récupérer les informations complètes pour la réponse
+    const populatedInscription = await InscriptionBEPC.findById(newInscription._id).populate('agentId', 'name email');
 
-
-    res.status(201).json(inscriptionResponse);
+    res.status(201).json(populatedInscription);
   } catch (error) {
-    console.error('Erreur lors de la création de l\'inscription:', error);
+    console.error('Erreur lors de la création de l\'inscription BEPC:', error);
+
+    if (error.code === 11000 && error.keyPattern?.matricule) {
+      return res.status(409).json({ msg: 'Le matricule existe déjà. Veuillez vérifier vos informations.' });
+    }
+
     res.status(400).json({ msg: 'Erreur lors de la validation des champs requis.', errors: error.errors });
   }
 };
-
 
 // exports.createInscription = async (req, res) => {
 //   try {
