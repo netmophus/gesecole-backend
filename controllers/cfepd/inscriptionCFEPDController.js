@@ -22,6 +22,9 @@ exports.createInscription = async (req, res) => {
       documents.autresDocuments = req.files.autresDocuments?.[0]?.path || '';
     }
 
+     // Fixer le montant à 1000
+     const montantPaiement = 1000;
+
     const newInscription = new InscriptionCFEPD({
       matricule: req.body.matricule,
       referencePaiement: referencePaiement,
@@ -37,7 +40,7 @@ exports.createInscription = async (req, res) => {
       classe: req.body.classe,
       directionRegionale: req.body.directionRegionale,
       inspectionRegionale: req.body.inspectionRegionale,
-      montantPaiement: req.body.montantPaiement,
+      montantPaiement: montantPaiement, // Fixé à 1000
       documents,
       agentId: req.user._id, // Inclure l'ID de l'agent connecté
     });

@@ -45,10 +45,22 @@ const inscriptionCFEPDSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+
+
+  // regionEtablissement: {
+  //   type: String,
+  //   required: true,
+  // },
+
+
   regionEtablissement: {
     type: String,
+    enum: ['Agadez', 'Dosso', 'Maradi', 'Diffa', 'Zinder', 'Niamey', 'Tillabery', 'Tahoua'], // Limite aux régions spécifiées
     required: true,
   },
+  
+
+
   anneeScolaire: {
     type: String,
     default: '2024-2025',
@@ -92,7 +104,7 @@ const inscriptionCFEPDSchema = new mongoose.Schema({
   montantPaiement: {
     type: Number,
     required: true,
-    default: 500, // Montant ajusté
+    default: 1000, // Montant ajusté
   },
 
   // Documents joints (URLs des documents)

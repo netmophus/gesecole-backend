@@ -80,6 +80,29 @@ exports.createInscription = async (req, res) => {
   console.log("Fichiers reçus:", req.files);
 
   try {
+
+
+    const { typeCandidat } = req.body;
+
+    // Calculer le montant en fonction du type de candidat
+    const montantPaiement =
+      typeCandidat === 'Ecole publique'
+        ? 5000
+        : typeCandidat === 'Ecole privée'
+        ? 5500
+        : typeCandidat === 'Candidat libre national'
+        ? 7500
+        : typeCandidat === 'Candidat libre étranger'
+        ? 25000
+        : 0;
+
+    if (montantPaiement === 0) {
+      return res.status(400).json({ msg: 'Type de candidat invalide.' });
+    }
+
+
+
+
     // Vérifier la duplication sur le matricule
     const existingInscription = await InscriptionBEPC.findOne({ matricule: req.body.matricule });
     if (existingInscription) {
@@ -118,6 +141,7 @@ exports.createInscription = async (req, res) => {
       classe: req.body.classe,
       directionRegionale: req.body.directionRegionale,
       inspectionRegionale: req.body.inspectionRegionale,
+      typeCandidat: typeCandidat, // Ajout du type de candidat
       montantPaiement: req.body.montantPaiement,
       documents,
       agentId: req.user._id, // L'ID de l'agent connecté
@@ -219,10 +243,28 @@ exports.updatePaiementStatus = async (req, res) => {
     const { id } = req.params;
     const { paymentStatus } = req.body;
 
-    const inscription = await InscriptionBEPC.findById(id);
-    if (!inscription) {
-      return res.status(404).json({ msg: 'Inscription non trouvée.' });
-    }
+    // const inscription = await InscriptionBEPC.findById(id);
+    // if (!inscription) {
+    //   return res.status(404).json({ msg: 'Inscription non trouvée.' });
+    // }
+
+
+
+
+    const inscription = await InscriptionBEPC.findById(id).populate('agentId', 'name');
+if (!inscription) {
+  return res.status(404).json({ msg: 'Inscription non trouvée.' });
+}
+
+// Inclure le nom de l'agent dans la réponse
+const response = {
+  ...inscription.toObject(),
+  agentName: inscription.agentId ? inscription.agentId.name : 'Non spécifié',
+};
+
+res.json(response);
+
+
 
     inscription.paymentStatus = paymentStatus;
     await inscription.save();
