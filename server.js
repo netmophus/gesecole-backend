@@ -54,6 +54,8 @@ app.use(express.json());
 app.use(cors({
   origin: [
     'https://gesecole-frontend-6535e71717bc.herokuapp.com', // URL de ton frontend déployé
+    'https://bulletin-num.com', // Votre domaine frontend
+    'https://www.bulletin-num.com', // Sous-domaine "www" si utilisé
     'http://localhost:3000', // Pour le développement local
     'http://localhost:3001',
     'http://localhost:3002'
