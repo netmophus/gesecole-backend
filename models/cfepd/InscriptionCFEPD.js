@@ -1,4 +1,4 @@
-//mon model 
+
 
 const mongoose = require('mongoose');
 
@@ -25,75 +25,61 @@ const inscriptionCFEPDSchema = new mongoose.Schema({
     enum: ['Masculin', 'Féminin'],
     required: true,
   },
+ 
 
-  // Coordonnées du parent/tuteur
-  telephoneParent: {
+  nationalite: {
     type: String,
+    enum: ['Nigérienne', 'Autre'], // Choix possibles
     required: true,
   },
-  adresseParent: {
+  autreNationalite: {
     type: String,
-    required: true,
+    required: function () {
+      return this.nationalite === 'Autre'; // Requis seulement si nationalité est "Autre"
+    },
   },
+  
 
   // Informations scolaires
+  typeEnseignement: {
+    type: String,
+    enum: ['Français', 'Franco-arabe'],
+    required: true,
+  },
+  regionEtablissement: {
+    type: String,
+    enum: ['Agadez', 'Dosso', 'Maradi', 'Diffa', 'Zinder', 'Niamey', 'Tillabery', 'Tahoua'],
+    required: true,
+  },
+  centreExamen: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CentreExamenCFEPD',
+    required: true,
+  },
   nomEtablissement: {
     type: String,
     required: true,
   },
-  classe: {
-    type: String,
-    required: true,
-  },
-
-
-  // regionEtablissement: {
-  //   type: String,
-  //   required: true,
+  // classe: {
+  //   type: String, // Champ facultatif
   // },
-
-
-  regionEtablissement: {
-    type: String,
-    enum: ['Agadez', 'Dosso', 'Maradi', 'Diffa', 'Zinder', 'Niamey', 'Tillabery', 'Tahoua'], // Limite aux régions spécifiées
-    required: true,
-  },
-  
-
-
-  anneeScolaire: {
-    type: String,
-    default: '2024-2025',
-  }, 
-  dateInscription: {
-    type: Date,
-    default: Date.now,
-  },
-
-  agentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Référence au modèle User
-    required: true,
-  },
-  
-
-  // Matricule unique de l'élève
   matricule: {
     type: String,
-    unique: true,
-    required: true,
+    required: false, // Facultatif
+    unique: false, // Suppression de l'unicité
   },
 
-    // Informations régionales
-    directionRegionale: {
-      type: String,
-      required: true,
-    },
-    inspectionRegionale: {
-      type: String,
-      required: true,
-    },
   
+  jury: { type: String }, // Champ facultatif
+numeroDeTable: { type: String }, // Champ facultatif
+
+
+  // Agent qui enregistre l'inscription
+  agentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
 
   // Suivi du paiement
   referencePaiement: {
@@ -104,16 +90,34 @@ const inscriptionCFEPDSchema = new mongoose.Schema({
   montantPaiement: {
     type: Number,
     required: true,
-    default: 1000, // Montant ajusté
+    default: 1000,
   },
 
-  // Documents joints (URLs des documents)
+
+
+
+
   documents: {
-    certificatNaissance: String,
-    photoIdentite: String,
-    pieceIdentiteParent: String,
+    certificatNaissance: { type: String, required: false },
+    certificatScolarite: { type: String, required: false },
+    photoIdentite: { type: String, required: false },
+    certificatNationalite: { type: String, required: false },
+    acteNaissance: { type: String, required: false },
+  },
+  
+
+  // Date d'inscription
+  dateInscription: {
+    type: Date,
+    default: Date.now,
   },
 });
+
+// Index pour garantir l'unicité sur nom, prénom, date de naissance et région
+inscriptionCFEPDSchema.index(
+  { nom: 1, prenom: 1, dateNaissance: 1, regionEtablissement: 1 },
+  { unique: true }
+);
 
 // Middleware pour générer une référence de paiement unique avant l'enregistrement
 inscriptionCFEPDSchema.pre('save', async function (next) {

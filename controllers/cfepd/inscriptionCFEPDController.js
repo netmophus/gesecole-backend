@@ -3,6 +3,7 @@ const User = require('../../models/User'); // Modèle utilisateur
 const PDFDocument = require('pdfkit');
 
 // **Créer une inscription CFEPD**
+
 exports.createInscription = async (req, res) => {
   console.log("Données reçues dans req.body:", req.body);
   console.log("Fichiers reçus:", req.files);
@@ -12,58 +13,131 @@ exports.createInscription = async (req, res) => {
     const initiales = `${req.body.prenom.charAt(0)}${req.body.nom.charAt(0)}`.toUpperCase();
     const referencePaiement = `REF-${initiales}-${timestamp}`;
 
-    const documents = {};
-    if (req.files) {
-      documents.certificatNaissance = req.files.certificatNaissance?.[0]?.path || '';
-      documents.certificatResidence = req.files.certificatResidence?.[0]?.path || '';
-      documents.certificatScolarite = req.files.certificatScolarite?.[0]?.path || '';
-      documents.photoIdentite = req.files.photoIdentite?.[0]?.path || '';
-      documents.pieceIdentiteParent = req.files.pieceIdentiteParent?.[0]?.path || '';
-      documents.autresDocuments = req.files.autresDocuments?.[0]?.path || '';
+    // Vérification si la région d'établissement est fournie
+    if (!req.body.regionEtablissement) {
+      return res.status(400).json({ msg: "La région d'établissement est obligatoire." });
     }
 
-     // Fixer le montant à 1000
-     const montantPaiement = 1000;
+  // Gestion des documents facultatifs (corrigé)
+const documents = {};
+const documentFields = [
+  'certificatNaissance',
+  'certificatScolarite',
+  'photoIdentite',
+  'certificatNationalite',
+  'acteNaissance',
+];
 
+// Ajouter uniquement les fichiers réellement présents
+documentFields.forEach((field) => {
+  if (req.files?.[field]?.[0]?.path) {
+    documents[field] = req.files[field][0].path;
+  }
+});
+
+    // Fixer le montant à 1000
+    const montantPaiement = 1000;
+
+    // Créer une nouvelle inscription
     const newInscription = new InscriptionCFEPD({
-      matricule: req.body.matricule,
+   
       referencePaiement: referencePaiement,
       prenom: req.body.prenom,
       nom: req.body.nom,
       dateNaissance: req.body.dateNaissance,
       lieuNaissance: req.body.lieuNaissance,
       genre: req.body.genre,
-      telephoneParent: req.body.telephoneParent,
-      adresseParent: req.body.adresseParent,
-      nomEtablissement: req.body.nomEtablissement,
+      nationalite: req.body.nationalite,
+      autreNationalite: req.body.nationalite === 'Autre' ? req.body.autreNationalite : undefined,
+      typeEnseignement: req.body.typeEnseignement,
       regionEtablissement: req.body.regionEtablissement,
-      classe: req.body.classe,
-      directionRegionale: req.body.directionRegionale,
-      inspectionRegionale: req.body.inspectionRegionale,
-      montantPaiement: montantPaiement, // Fixé à 1000
-      documents,
+      centreExamen: req.body.centreExamen,
+      nomEtablissement: req.body.nomEtablissement,
+      montantPaiement: montantPaiement,
+      matricule: req.body.matricule || null, // Facultatif
+      jury: req.body.jury || null, // Facultatif
+      numeroDeTable: req.body.numeroDeTable || null, // Facultatif
+      documents, // Documents facultatifs
       agentId: req.user._id, // Inclure l'ID de l'agent connecté
     });
 
     await newInscription.save();
 
     // Récupérer les détails de l'agent pour la réponse
-    const populatedInscription = await InscriptionCFEPD.findById(newInscription._id).populate('agentId', 'name email');
+    const populatedInscription = await InscriptionCFEPD.findById(newInscription._id).populate(
+      'agentId',
+      'name phone'
+    );
 
     res.status(201).json(populatedInscription);
   } catch (error) {
     console.error('Erreur lors de la création de l\'inscription CFEPD:', error);
 
-
+    // Gestion des conflits de matricule
     if (error.code === 11000 && error.keyPattern?.matricule) {
       return res.status(409).json({ msg: 'Le matricule existe déjà. Veuillez vérifier vos informations.' });
     }
 
-
-
     res.status(400).json({ msg: 'Erreur lors de la validation des champs requis.', errors: error.errors });
   }
 };
+
+ // Modifier une inscription CFEPD
+
+
+exports.updateInscription = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    // Récupérer l'inscription existante
+    const existingInscription = await InscriptionCFEPD.findById(id);
+
+    if (!existingInscription) {
+      return res.status(404).json({ message: "Inscription non trouvée" });
+    }
+
+
+    if (updates.jury !== undefined) {
+      existingInscription.jury = updates.jury;
+    }
+    if (updates.numeroDeTable !== undefined) {
+      existingInscription.numeroDeTable = updates.numeroDeTable;
+    }
+    
+    if (updates.matricule !== undefined) {
+      existingInscription.matricule = updates.matricule || null; // Permet de rendre le matricule facultatif
+    }
+    
+
+    // Fusionner les documents existants avec les nouvelles données
+    let updatedDocuments = existingInscription.documents || {};
+    if (updates.documents) {
+      updatedDocuments = {
+        certificatNaissance: updates.documents.certificatNaissance || existingInscription.documents.certificatNaissance,
+        certificatScolarite: updates.documents.certificatScolarite || existingInscription.documents.certificatScolarite,
+        certificatNationalite: updates.documents.certificatNationalite || existingInscription.documents.certificatNationalite,
+        photoIdentite: updates.documents.photoIdentite || existingInscription.documents.photoIdentite,
+      };
+    }
+
+    // Ajoutez `documents` à la mise à jour
+    updates.documents = updatedDocuments;
+
+    // Mettre à jour l'inscription
+    const updatedInscription = await InscriptionCFEPD.findByIdAndUpdate(
+      id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json(updatedInscription);
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de l'inscription :", error);
+    res.status(500).json({ message: "Erreur interne du serveur", error });
+  }
+};
+
 
 // **Mettre à jour le statut de paiement d’une inscription CFEPD**
 exports.updatePaiementStatus = async (req, res) => {
@@ -178,5 +252,128 @@ exports.getInscriptionByMatricule = async (req, res) => {
   } catch (error) {
     console.error("Erreur lors de la récupération des informations de l'élève :", error);
     res.status(500).json({ message: "Erreur lors de la récupération des informations de l'élève." });
+  }
+};
+
+
+// Récupérer toutes les inscriptions avec les centres peuplés
+exports.getAllInscriptions = async (req, res) => {
+  try {
+    console.log("Début de la récupération des inscriptions...");
+    const inscriptions = await InscriptionCFEPD.find().populate('centreExamen', 'nom region'); // Récupère uniquement `nom` et `region`
+    console.log("Inscriptions trouvées :", inscriptions);
+    res.status(200).json(inscriptions);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des inscriptions :', error);
+    res.status(500).json({
+      msg: 'Erreur serveur lors de la récupération des inscriptions.',
+      error: error.message,
+    });
+  }
+};
+
+
+
+
+// Supprimer une inscription CFEPD
+exports.deleteInscription = async (req, res) => {
+  try {
+    const { id } = req.params; // ID de l'inscription à supprimer
+
+    const deletedInscription = await InscriptionCFEPD.findByIdAndDelete(id);
+
+    if (!deletedInscription) {
+      return res.status(404).json({ msg: "Inscription non trouvée." });
+    }
+
+    res.status(200).json({
+      msg: "Inscription supprimée avec succès.",
+      inscription: deletedInscription,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la suppression de l'inscription CFEPD :", error);
+    res.status(500).json({
+      msg: "Erreur serveur lors de la suppression de l'inscription.",
+      error: error.message,
+    });
+  }
+};
+
+
+exports.getInscriptionById = async (req, res) => {
+  try {
+    const inscription = await InscriptionCFEPD.findById(req.params.id)
+      .populate('centreExamen', 'nom region'); // Popule le nom et la région du centre d'examen
+
+    if (!inscription) {
+      console.log("Inscription non trouvée pour l'ID :", req.params.id);
+      return res.status(404).json({ msg: 'Inscription non trouvée.' });
+    }
+
+    console.log("Données de l'inscription après populate :", inscription);
+    res.status(200).json(inscription);
+  } catch (error) {
+    console.error("Erreur lors de la récupération de l'inscription :", error);
+    res.status(500).json({ msg: 'Erreur serveur.', error: error.message });
+  }
+};
+
+
+
+// exports.getRecuByReference = async (req, res) => {
+//   try {
+//     const { referencePaiement } = req.params;
+
+//     // Rechercher l'inscription et remplir le centre d'examen
+//     const inscription = await InscriptionCFEPD.findOne({ referencePaiement }).populate('centreExamen');
+
+//     if (!inscription) {
+//       return res.status(404).json({ message: 'Reçu introuvable.' });
+//     }
+
+//     res.status(200).json(inscription); // Retourne l'inscription avec le centre d'examen peuplé
+//   } catch (error) {
+//     console.error('Erreur lors de la récupération du reçu :', error);
+//     res.status(500).json({ message: 'Erreur interne du serveur.' });
+//   }
+// };
+
+
+
+exports.getRecuByReference = async (req, res) => {
+  try {
+    const { referencePaiement } = req.params;
+
+    // Rechercher l'inscription et remplir le centre d'examen et l'agent de saisie
+    const inscription = await InscriptionCFEPD.findOne({ referencePaiement })
+      .populate('centreExamen') // Remplit les informations sur le centre d'examen
+      .populate('agentId', 'name email'); // Remplit le nom et l'email de l'agent de saisie
+
+    if (!inscription) {
+      return res.status(404).json({ message: 'Reçu introuvable.' });
+    }
+
+    res.status(200).json(inscription); // Retourne les données peuplées
+  } catch (error) {
+    console.error('Erreur lors de la récupération du reçu :', error);
+    res.status(500).json({ message: 'Erreur interne du serveur.' });
+  }
+};
+
+exports.getInscriptionsByUser = async (req, res) => {
+  try {
+    // Récupérer l'ID de l'utilisateur connecté depuis le token
+    const userId = req.user.id;
+
+    // Filtrer les inscriptions par agentId (ID de l'utilisateur)
+    const inscriptions = await InscriptionCFEPD.find({ agentId: userId })
+      .populate('centreExamen', 'nom region') // Populate pour inclure les détails du centre
+      .exec();
+
+    // Retourner les inscriptions au format JSON
+    res.status(200).json(inscriptions);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des inscriptions utilisateur:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération des inscriptions.' });
   }
 };

@@ -35,6 +35,10 @@ const cfepdAdminRoutes = require('./routes/cfepd/cfepdAdminRoutes'); // Importat
 const bepcAdminRoutes = require('./routes/bepc/bepcAdminRoutes'); // Chemin vers vos routes BEPC
 
 
+// Import des routes des centres d'examen
+const centreExamenRoutes = require('./routes/cfepd/centreExamenRoutes');
+const centreExamenBEPCRoutes = require('./routes/bepc/centreExamenBEPCRoutes');
+
 // Charger la configuration
 dotenv.config();
 
@@ -104,13 +108,10 @@ app.use('/api/chapters', chapterRoutes);
 
 
 
-
 // Utiliser les routes
 app.use('/api/stats', statsRoutes);
 
 
-
-//app.use('/api/pedagogical-subjects', pedagogicalSubjectRoutes);
 
 
 
@@ -132,6 +133,12 @@ app.use('/api/cfepd/auth', authCFEPDRoutes);
 app.use('/api/cfepdadmin', cfepdAdminRoutes);
 app.use('/api/bepcadmin', bepcAdminRoutes);
 
+
+
+// Routes des centres d'examen
+app.use('/api/centres', centreExamenRoutes);
+
+app.use('/api/bepc/centre-examen', centreExamenBEPCRoutes);
 
 // Route par défaut
 app.get('/', (req, res) => {

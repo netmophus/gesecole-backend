@@ -80,6 +80,10 @@ exports.loginBEPC = async (req, res) => {
       return res.status(401).json({ msg: 'Mot de passe incorrect.' });
     }
 
+    if (!user.isActive) {
+      return res.status(403).json({ msg: 'Votre compte est désactivé. Veuillez contacter l\'administrateur.' });
+    }
+
     // Vérifiez si le rôle est lié au BEPC
     const validRoles = ['bepc', 'bepcadmin', 'admincentralbepc'];
     if (!validRoles.includes(user.role)) {

@@ -53,6 +53,7 @@ exports.protectBEPCAdmin = async (req, res, next) => {
 
     // Vérifiez si l'utilisateur a le rôle bepcadmin
     if (req.user.role !== 'bepcadmin') {
+      console.log('Utilisateur non authentifié dans protectBEPCAdmin'); // Débogage
       return res.status(403).json({ msg: 'Accès interdit : réservé aux administrateurs BEPC.' });
     }
 

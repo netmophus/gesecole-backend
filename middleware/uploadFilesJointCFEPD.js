@@ -21,12 +21,11 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage: storage }).fields([
   { name: 'certificatNaissance', maxCount: 1 },
-  { name: 'certificatResidence', maxCount: 1 },
   { name: 'certificatScolarite', maxCount: 1 },
   { name: 'photoIdentite', maxCount: 1 },
-  { name: 'pieceIdentiteParent', maxCount: 1 },
-  { name: 'autresDocuments', maxCount: 1 },
+  { name: 'certificatNationalite', maxCount: 1 },
 ]);
+
 
 const uploadFilesJointCFEPD = (req, res, next) => {
   upload(req, res, (err) => {
@@ -37,13 +36,16 @@ const uploadFilesJointCFEPD = (req, res, next) => {
     // Récupération des URLs Cloudinary et ajout à req.body.documents
     req.body.documents = {};
     if (req.files) {
-      for (const key in req.files) {
-        if (req.files[key] && req.files[key][0]) {
-          req.body.documents[key] = req.files[key][0].path; // URL Cloudinary
+      const requiredFiles = ['certificatNaissance', 'certificatScolarite', 'photoIdentite', 'certificatNationalite'];
+      req.body.documents = {};
+    
+      requiredFiles.forEach((fileKey) => {
+        if (req.files[fileKey] && req.files[fileKey][0]) {
+          req.body.documents[fileKey] = req.files[fileKey][0].path; // URL Cloudinary
         }
-      }
+      });
     }
-
+    
     next();
   });
 };

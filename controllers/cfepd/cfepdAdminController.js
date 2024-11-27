@@ -287,4 +287,27 @@ exports.generateFilteredReport = async (req, res) => {
 
 
 
+exports.generateReportByRegionAndCenter = async (req, res) => {
+  try {
+    const inscriptions = await InscriptionCFEPD.find().populate('centreExamen');
+
+    // Regrouper les inscriptions par région et centre
+    const regions = inscriptions.reduce((acc, inscription) => {
+      const region = inscription.regionEtablissement;
+      const center = inscription.centreExamen?.nom || 'Non spécifié';
+
+      if (!acc[region]) acc[region] = {};
+      if (!acc[region][center]) acc[region][center] = [];
+
+      acc[region][center].push(inscription);
+      return acc;
+    }, {});
+
+    res.status(200).json({ regions });
+  } catch (error) {
+    console.error('Erreur lors de la génération du rapport CFEPD :', error);
+    res.status(500).json({ message: 'Erreur serveur lors de la génération du rapport.' });
+  }
+};
+
 

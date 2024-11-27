@@ -1,8 +1,9 @@
 
+
 const mongoose = require('mongoose');
 
 const inscriptionBepcSchema = new mongoose.Schema({
-  // 1. Identité de l’élève
+  // Identité de l'élève
   prenom: {
     type: String,
     required: true,
@@ -19,84 +20,62 @@ const inscriptionBepcSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  genre: {
+  nationalite: {
     type: String,
-    enum: ['Masculin', 'Féminin'],
+    enum: ['Nigérienne', 'Autre'],
     required: true,
+  },
+  autreNationalite: {
+    type: String,
+    required: function () {
+      return this.nationalite === 'Autre';
+    },
   },
 
-  // 2. Coordonnées du parent/tuteur
-  telephoneParent: {
+  // Informations scolaires
+  typeEnseignement: {
     type: String,
-    required: true,
-  },
-  emailParent: {
-    type: String,
-    sparse: true,
-  },
-  adresseParent: {
-    type: String,
-    required: true,
-  },
-
-  // 3. Informations scolaires
-  nomEtablissement: {
-    type: String,
+    enum: ['Français', 'Franco-arabe'],
     required: true,
   },
 
 
   regionEtablissement: {
     type: String,
-    enum: ['Agadez', 'Dosso', 'Maradi', 'Diffa', 'Zinder', 'Niamey', 'Tillabery', 'Tahoua'], // Limite aux régions spécifiées
+    enum: ['Agadez', 'Dosso', 'Maradi', 'Diffa', 'Zinder', 'Niamey', 'Tillabery', 'Tahoua'],
     required: true,
   },
-  
- 
-  
-  classe: {
+
+
+  nomEtablissement: {
     type: String,
-    required: true,
+    required: true, // Rendre obligatoire
   },
-  anneeScolaire: {
-    type: String,
-    default: '2024-2025',
-  }, 
-  dateInscription: {
-    type: Date,
-    default: Date.now,
-  },
+
+
   centreExamen: {
-    type: String,
-  },
-
-  // Matricule unique de l’élève
-  matricule: {
-    type: String,
-    unique: true,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CentreExamenBEPC',
     required: true,
   },
 
-  // Informations régionales
-  directionRegionale: {
+  // Nouveaux champs : Jury et numéro de table
+  jury: {
     type: String,
-    required: true,
+    required: false, // Champ facultatif
   },
-  inspectionRegionale: {
+  numeroTable: {
     type: String,
-    required: true,
+    required: false, // Champ facultatif
   },
-
-  // Suivi du paiement
 
   typeCandidat: {
     type: String,
     enum: ['Ecole publique', 'Ecole privée', 'Candidat libre national', 'Candidat libre étranger'],
-    required: true,
-    default: 'Ecole publique', // Optionnel
+    required: true, // Assurez-vous qu'il est obligatoire
   },
-  
 
+  // Suivi du paiement
   referencePaiement: {
     type: String,
     unique: true,
@@ -108,27 +87,50 @@ const inscriptionBepcSchema = new mongoose.Schema({
     default: 5000,
   },
 
-
+  // Agent qui enregistre l'inscription
   agentId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Référence au modèle User
+    ref: 'User',
     required: true,
   },
-  
 
   // Documents joints (URL ou fichiers)
   documents: {
-    certificatNaissance: String,
-    certificatResidence: String,
-    certificatScolarite: String,
-    photoIdentite: String,
-    pieceIdentiteParent: String,
-    autresDocuments: String,
+    photoIdentite: {
+      type: String,
+      required: false, // Fichier non obligatoire
+    },
+    acteNaissance: {
+      type: String,
+      required: false, // Fichier non obligatoire
+    },
+    certificatNationalite: {
+      type: String,
+      required: false, // Fichier non obligatoire
+    },
+  },
+
+  // Date d'inscription
+  dateInscription: {
+    type: Date,
+    default: Date.now,
+  },
+
+  // Matricule facultatif
+  matricule: {
+    type: String,
+    required: false,
   },
 });
-// Middleware asynchrone pour générer une référence de paiement unique avant enregistrement
+
+// Définition d'un index unique combiné
+inscriptionBepcSchema.index(
+  { nom: 1, prenom: 1, dateNaissance: 1, regionEtablissement: 1 },
+  { unique: true, message: 'Une inscription avec ces informations existe déjà.' }
+);
+
+// Middleware pour générer une référence de paiement unique avant l'enregistrement
 inscriptionBepcSchema.pre('save', async function (next) {
-  // Vérifier si `referencePaiement` est déjà généré
   if (!this.referencePaiement) {
     const timestamp = Date.now();
     const initiales = `${this.prenom.charAt(0)}${this.nom.charAt(0)}`.toUpperCase();

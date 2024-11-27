@@ -5,6 +5,7 @@ const cfepdAdminController = require('../../controllers/cfepd/cfepdAdminControll
 
 router.get('/agents', protectCFEPD, protectCFEPDAdmin, cfepdAdminController.getAgents);
 
+router.get('/report/inscriptions', protectCFEPD, cfepdAdminController.generateReportByRegionAndCenter);
 
 router.put('/agents/:id/toggle', protectCFEPD, protectCFEPDAdmin, cfepdAdminController.toggleAgentStatus);
 

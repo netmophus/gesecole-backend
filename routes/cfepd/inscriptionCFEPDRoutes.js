@@ -1,11 +1,3 @@
-const express = require('express');
-const router = express.Router();
-const { protectCFEPD } = require('../../middleware/authCFEPD'); // Middleware pour protéger les routes CFEPD
-const inscriptionCFEPDController = require('../../controllers/cfepd/inscriptionCFEPDController'); // Controller CFEPD
-const multer = require('multer');
-const upload = multer(); // Configuration simple pour recevoir les données `FormData`
-const uploadFilesJointCFEPD = require('../../middleware/uploadFilesJointCFEPD');
-
 // // **Route : Inscription d’un candidat CFEPD avec fichiers joints**
 // router.post('/', uploadFilesJointCFEPD, inscriptionCFEPDController.createInscription);
 
@@ -35,9 +27,36 @@ const uploadFilesJointCFEPD = require('../../middleware/uploadFilesJointCFEPD');
 
 
 
+
+
+
+
+
+
+
+const express = require('express');
+const router = express.Router();
+const { protectCFEPD } = require('../../middleware/authCFEPD'); // Middleware pour protéger les routes CFEPD
+const inscriptionCFEPDController = require('../../controllers/cfepd/inscriptionCFEPDController'); // Controller CFEPD
+const multer = require('multer');
+const upload = multer(); // Configuration simple pour recevoir les données `FormData`
+const uploadFilesJointCFEPD = require('../../middleware/uploadFilesJointCFEPD');
+
+
+
 // **Routes d'inscription**
 router.post('/', protectCFEPD, uploadFilesJointCFEPD, inscriptionCFEPDController.createInscription);
 router.put('/inscription/:id/paiement', protectCFEPD, inscriptionCFEPDController.updatePaiementStatus);
+
+// Route pour récupérer uniquement les inscriptions de l'utilisateur connecté
+router.get('/inscriptions/mine', protectCFEPD, inscriptionCFEPDController.getInscriptionsByUser);
+
+
+// **Routes pour modification et suppression**
+router.put('/:id', protectCFEPD, uploadFilesJointCFEPD, inscriptionCFEPDController.updateInscription); // Modification d'une inscription
+router.delete('/:id', protectCFEPD, inscriptionCFEPDController.deleteInscription); // Suppression d'une inscription
+
+
 
 // **Routes de récupération d'informations**
 router.get('/inscriptions', protectCFEPD, inscriptionCFEPDController.getInscriptionsByPhone);
@@ -50,5 +69,14 @@ router.get('/admin-dashboard', protectCFEPD, inscriptionCFEPDController.getAdmin
 
 // **Routes pour les rapports**
 router.get('/report/inscriptions', protectCFEPD, inscriptionCFEPDController.generateReport);
+
+router.get('/', protectCFEPD, inscriptionCFEPDController.getAllInscriptions);
+
+// **Route pour récupérer une inscription par ID**
+router.get('/:id', protectCFEPD, inscriptionCFEPDController.getInscriptionById);
+
+
+// Route pour régénérer le reçu par ID
+router.get('/recu/:referencePaiement', protectCFEPD, inscriptionCFEPDController.getRecuByReference);
 
 module.exports = router;

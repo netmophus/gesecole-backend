@@ -2,6 +2,7 @@ const User = require('../../models/User');
 const InscriptionBEPC = require('../../models/bepc/InscriptionBEPC');
 const mongoose = require('mongoose'); // Ajoutez mongoose pour la gestion des ObjectId
 
+
 // 1. Récupérer les agents BEPC avec statistiques
 exports.getAgents = async (req, res) => {
   try {
@@ -132,27 +133,36 @@ exports.generateAgentReport = async (req, res) => {
   }
 };
 
-// 6. Générer un rapport filtré pour un agent BEPC
+
+
 // exports.generateFilteredReport = async (req, res) => {
-//   console.log('Données reçues :', req.body);
-//   console.log('ID utilisateur reçu :', req.params.id);
+//   console.log("Données reçues :", req.body);
+//   console.log("ID utilisateur reçu :", req.params.id);
 
 //   const { region, directionRegionale, inspectionRegionale, etablissement } = req.body;
 //   const { id: agentId } = req.params;
 
 //   if (!agentId) {
-//     return res.status(400).json({ msg: 'ID de l’utilisateur manquant.' });
+//     return res.status(400).json({ message: "ID de l'utilisateur manquant." });
 //   }
 
 //   try {
 //     const filter = { agentId };
 
-//     if (region) filter.regionEtablissement = region;
-//     if (directionRegionale) filter.directionRegionale = directionRegionale;
-//     if (inspectionRegionale) filter.inspectionRegionale = inspectionRegionale;
-//     if (etablissement) filter.nomEtablissement = etablissement;
+//     if (region) {
+//       filter.regionEtablissement = { $regex: new RegExp(region, 'i') }; // Insensible à la casse
+//     }
+//     if (directionRegionale) {
+//       filter.directionRegionale = { $regex: new RegExp(directionRegionale, 'i') }; // Insensible à la casse
+//     }
+//     if (inspectionRegionale) {
+//       filter.inspectionRegionale = { $regex: new RegExp(inspectionRegionale, 'i') }; // Insensible à la casse
+//     }
+//     if (etablissement) {
+//       filter.nomEtablissement = { $regex: new RegExp(etablissement, 'i') }; // Insensible à la casse
+//     }
 
-//     console.log('Filtre appliqué :', filter);
+//     console.log("Filtre appliqué :", filter);
 
 //     const inscriptions = await InscriptionBEPC.find(filter);
 
@@ -170,59 +180,24 @@ exports.generateAgentReport = async (req, res) => {
 //       inscriptions,
 //     });
 //   } catch (err) {
-//     console.error('Erreur lors de la génération du rapport filtré BEPC :', err);
-//     res.status(500).json({ msg: 'Erreur serveur.' });
+//     console.error("Erreur lors de la génération du rapport filtré :", err);
+//     res.status(500).json({ message: "Erreur serveur." });
 //   }
 // };
 
 
 
-exports.generateFilteredReport = async (req, res) => {
-  console.log("Données reçues :", req.body);
-  console.log("ID utilisateur reçu :", req.params.id);
-
-  const { region, directionRegionale, inspectionRegionale, etablissement } = req.body;
-  const { id: agentId } = req.params;
-
-  if (!agentId) {
-    return res.status(400).json({ message: "ID de l'utilisateur manquant." });
-  }
-
+exports.generateReport = async (req, res) => {
   try {
-    const filter = { agentId };
+    const inscriptions = await InscriptionBEPC.find()
+      .populate("centreExamen", "nom region") // Popule les champs `nom` et `region` du centre d'examen
+      .lean();
 
-    if (region) {
-      filter.regionEtablissement = { $regex: new RegExp(region, 'i') }; // Insensible à la casse
-    }
-    if (directionRegionale) {
-      filter.directionRegionale = { $regex: new RegExp(directionRegionale, 'i') }; // Insensible à la casse
-    }
-    if (inspectionRegionale) {
-      filter.inspectionRegionale = { $regex: new RegExp(inspectionRegionale, 'i') }; // Insensible à la casse
-    }
-    if (etablissement) {
-      filter.nomEtablissement = { $regex: new RegExp(etablissement, 'i') }; // Insensible à la casse
-    }
-
-    console.log("Filtre appliqué :", filter);
-
-    const inscriptions = await InscriptionBEPC.find(filter);
-
-    const totalSaisies = inscriptions.length;
-    const montantTotal = inscriptions.reduce((sum, ins) => sum + ins.montantPaiement, 0);
-
-    const agent = await User.findById(agentId).select('name phone');
-
-    res.json({
-      agent: {
-        ...agent.toObject(),
-        totalSaisies,
-        montantTotal,
-      },
-      inscriptions,
-    });
+    res.status(200).json(inscriptions); // Envoie les inscriptions enrichies au frontend
   } catch (err) {
-    console.error("Erreur lors de la génération du rapport filtré :", err);
+    console.error("Erreur lors de la génération du rapport :", err);
     res.status(500).json({ message: "Erreur serveur." });
   }
 };
+
+
